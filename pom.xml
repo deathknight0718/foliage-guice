@@ -30,6 +30,30 @@
                 </excludes>
             </testResource>
         </testResources>
+        <plugins>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>empty-javadoc</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>page.foliage.guava.common</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                    <excludes>
+                        <exclude>**/ForceGuavaCompilation*</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
     <dependencies>
         <dependency>
