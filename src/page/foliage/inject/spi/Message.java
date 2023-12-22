@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,24 +18,24 @@ package page.foliage.inject.spi;
 
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
-import page.foliage.guava.common.base.Objects;
-import page.foliage.guava.common.collect.ImmutableList;
-import page.foliage.inject.Binder;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.util.SourceProvider;
-
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.List;
 
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.Message;
+import page.foliage.guava.common.collect.ImmutableList;
+import page.foliage.guava.common.collect.Iterables;
+import page.foliage.inject.Binder;
+import page.foliage.inject.internal.ErrorId;
+import page.foliage.inject.internal.Errors;
+import page.foliage.inject.internal.GenericErrorDetail;
+import page.foliage.inject.internal.GuiceInternal;
+import page.foliage.inject.internal.util.SourceProvider;
 
 /**
  * An error message and the context in which it occured. Messages are usually created internally by
  * Guice and its extensions. Messages can be created explicitly in a module using {@link
  * page.foliage.inject.Binder#addError(Throwable) addError()} statements:
+ *
  * <pre>
  *     try {
  *       bindPropertiesFromFile();
@@ -46,22 +46,33 @@ import page.foliage.inject.spi.Message;
  * @author crazybob@google.com (Bob Lee)
  */
 public final class Message implements Serializable, Element {
-  private final String message;
-  private final Throwable cause;
-  private final List<Object> sources;
+  private final ErrorId errorId;
+  private final ErrorDetail<?> errorDetail;
 
-  /**
-   * @since 2.0
-   */
-  public Message(List<Object> sources, String message, Throwable cause) {
-    this.sources = ImmutableList.copyOf(sources);
-    this.message = checkNotNull(message, "message");
-    this.cause = cause;
+  /** @since 5.0 */
+  public Message(GuiceInternal internalOnly, ErrorId errorId, ErrorDetail<?> errorDetail) {
+    checkNotNull(internalOnly);
+    this.errorId = errorId;
+    this.errorDetail = errorDetail;
   }
 
-  /**
-   * @since 4.0
-   */
+  private Message(ErrorId errorId, ErrorDetail<?> errorDetail) {
+    this.errorId = errorId;
+    this.errorDetail = errorDetail;
+  }
+
+  /** @since 2.0 */
+  public Message(ErrorId errorId, List<Object> sources, String message, Throwable cause) {
+    this.errorId = errorId;
+    this.errorDetail = new GenericErrorDetail(errorId, message, sources, cause);
+  }
+
+  /** @since 2.0 */
+  public Message(List<Object> sources, String message, Throwable cause) {
+    this(ErrorId.OTHER, sources, message, cause);
+  }
+
+  /** @since 4.0 */
   public Message(String message, Throwable cause) {
     this(ImmutableList.of(), message, cause);
   }
@@ -74,70 +85,97 @@ public final class Message implements Serializable, Element {
     this(ImmutableList.of(), message, null);
   }
 
+  /**
+   * Returns details about this error message.
+   *
+   * @since 5.0
+   */
+  public ErrorDetail<?> getErrorDetail() {
+    return errorDetail;
+  }
+
+  @Override
   public String getSource() {
+    List<Object> sources = errorDetail.getSources();
     return sources.isEmpty()
         ? SourceProvider.UNKNOWN_SOURCE.toString()
-        : Errors.convert(sources.get(sources.size() - 1)).toString();
+        : Errors.convert(Iterables.getLast(sources)).toString();
   }
 
   /** @since 2.0 */
   public List<Object> getSources() {
-    return sources;
+    return errorDetail.getSources();
   }
 
-  /**
-   * Gets the error message text.
-   */
+  /** Gets the error message text. */
   public String getMessage() {
-    return message;
+    return errorDetail.getMessage();
   }
 
   /** @since 2.0 */
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
   }
 
   /**
-   * Returns the throwable that caused this message, or {@code null} if this
-   * message was not caused by a throwable.
+   * Returns the throwable that caused this message, or {@code null} if this message was not caused
+   * by a throwable.
    *
    * @since 2.0
    */
   public Throwable getCause() {
-    return cause;
+    return errorDetail.getCause();
   }
 
-  @Override public String toString() {
-    return message;
+  @Override
+  public String toString() {
+    return errorDetail.getMessage();
   }
 
-  @Override public int hashCode() {
-    return Objects.hashCode(message, cause, sources);
+  @Override
+  public int hashCode() {
+    return errorDetail.hashCode();
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (!(o instanceof Message)) {
       return false;
     }
     Message e = (Message) o;
-    return message.equals(e.message) && Objects.equal(cause, e.cause) && sources.equals(e.sources);
+    return errorDetail.equals(e.errorDetail);
   }
 
   /** @since 2.0 */
+  @Override
   public void applyTo(Binder binder) {
     binder.withSource(getSource()).addError(this);
   }
 
   /**
-   * When serialized, we eagerly convert sources to strings. This hurts our formatting, but it
-   * guarantees that the receiving end will be able to read the message.
+   * Returns a copy of this {@link Message} with its sources replaced.
+   *
+   * @since 5.0
+   */
+  public Message withSource(List<Object> newSources) {
+    return new Message(errorId, errorDetail.withSources(newSources));
+  }
+
+  /**
+   * When serialized, we convert the error detail to a {@link GenericErrorDetail} with string
+   * sources. This hurts our formatting, but it guarantees that the receiving end will be able to
+   * read the message.
    */
   private Object writeReplace() throws ObjectStreamException {
-    Object[] sourcesAsStrings = sources.toArray();
+    Object[] sourcesAsStrings = getSources().toArray();
     for (int i = 0; i < sourcesAsStrings.length; i++) {
       sourcesAsStrings[i] = Errors.convert(sourcesAsStrings[i]).toString();
     }
-    return new Message(ImmutableList.copyOf(sourcesAsStrings), message, cause);
+    return new Message(
+        errorId,
+        new GenericErrorDetail(
+            errorId, getMessage(), ImmutableList.copyOf(sourcesAsStrings), getCause()));
   }
 
   private static final long serialVersionUID = 0;

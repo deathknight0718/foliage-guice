@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2011 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,6 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.AbstractBindingProcessor;
-import page.foliage.inject.internal.BindingImpl;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-import page.foliage.inject.internal.ProcessedBindingData;
-
 import page.foliage.inject.Binding;
 import page.foliage.inject.spi.UntargettedBinding;
 
@@ -31,45 +25,47 @@ import page.foliage.inject.spi.UntargettedBinding;
  * @author sameb@google.com (Sam Berlin)
  */
 class UntargettedBindingProcessor extends AbstractBindingProcessor {
-  
-  UntargettedBindingProcessor(Errors errors, ProcessedBindingData bindingData) {
-    super(errors, bindingData);
+
+  UntargettedBindingProcessor(Errors errors, ProcessedBindingData processedBindingData) {
+    super(errors, processedBindingData);
   }
-  
+
   @Override
   public <T> Boolean visit(Binding<T> binding) {
-    return binding.acceptTargetVisitor(new Processor<T, Boolean>((BindingImpl<T>)binding) {  
-      public Boolean visit(UntargettedBinding<? extends T> untargetted) {
-        prepareBinding();
+    return binding.acceptTargetVisitor(
+        new Processor<T, Boolean>((BindingImpl<T>) binding) {
+          @Override
+          public Boolean visit(UntargettedBinding<? extends T> untargetted) {
+            prepareBinding();
 
-        // Error: Missing implementation.
-        // Example: bind(Date.class).annotatedWith(Red.class);
-        // We can't assume abstract types aren't injectable. They may have an
-        // @ImplementedBy annotation or something.
-        if (key.getAnnotationType() != null) {
-          errors.missingImplementation(key);
-          putBinding(invalidBinding(injector, key, source));
-          return true;
-        }
-    
-        // This cast is safe after the preceeding check.
-        try {
-          BindingImpl<T> binding = injector.createUninitializedBinding(
-              key, scoping, source, errors, false);
-          scheduleInitialization(binding);
-          putBinding(binding);
-        } catch (ErrorsException e) {
-          errors.merge(e.getErrors());
-          putBinding(invalidBinding(injector, key, source));
-        }
-    
-        return true;
-      }
-      
-      @Override
-      protected Boolean visitOther(Binding<? extends T> binding) {
-        return false;
-      }
-    });
+            // Error: Missing implementation.
+            // Example: bind(Date.class).annotatedWith(Red.class);
+            // We can't assume abstract types aren't injectable. They may have an
+            // @ImplementedBy annotation or something.
+            if (key.getAnnotationType() != null) {
+              errors.missingImplementationWithHint(key, injector);
+              putBinding(invalidBinding(injector, key, source));
+              return true;
+            }
+
+            // This cast is safe after the preceeding check.
+            try {
+              BindingImpl<T> binding =
+                  injector.createUninitializedBinding(key, scoping, source, errors, false);
+              scheduleInitialization(binding);
+              putBinding(binding);
+            } catch (ErrorsException e) {
+              errors.merge(e.getErrors());
+              putBinding(invalidBinding(injector, key, source));
+            }
+
+            return true;
+          }
+
+          @Override
+          protected Boolean visitOther(Binding<? extends T> binding) {
+            return false;
+          }
+        });
   }
 }

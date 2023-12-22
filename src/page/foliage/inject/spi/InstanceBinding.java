@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,6 @@ package page.foliage.inject.spi;
 
 import java.util.Set;
 
-import page.foliage.inject.spi.HasDependencies;
-import page.foliage.inject.spi.InjectionPoint;
-
 import page.foliage.inject.Binding;
 
 /**
@@ -31,9 +28,7 @@ import page.foliage.inject.Binding;
  */
 public interface InstanceBinding<T> extends Binding<T>, HasDependencies {
 
-  /**
-   * Returns the user-supplied instance.
-   */
+  /** Returns the user-supplied instance. */
   T getInstance();
 
   /**
@@ -43,5 +38,4 @@ public interface InstanceBinding<T> extends Binding<T>, HasDependencies {
    * @return a possibly empty set
    */
   Set<InjectionPoint> getInjectionPoints();
-
 }

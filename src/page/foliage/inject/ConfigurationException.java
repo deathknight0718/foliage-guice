@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,13 +18,10 @@ package page.foliage.inject;
 
 import static page.foliage.guava.common.base.Preconditions.checkState;
 
-import page.foliage.guava.common.collect.ImmutableSet;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.spi.Message;
-
 import java.util.Collection;
 
-import page.foliage.inject.ConfigurationException;
+import page.foliage.inject.internal.Messages;
+import page.foliage.inject.spi.Message;
 
 /**
  * Thrown when a programming error such as a misplaced annotation, illegal binding, or unsupported
@@ -35,13 +32,13 @@ import page.foliage.inject.ConfigurationException;
  */
 public final class ConfigurationException extends RuntimeException {
 
-  private final ImmutableSet<Message> messages;
+  private final page.foliage.guava.common.collect.ImmutableSet<Message> messages;
   private Object partialValue = null;
 
   /** Creates a ConfigurationException containing {@code messages}. */
   public ConfigurationException(Iterable<Message> messages) {
-    this.messages = ImmutableSet.copyOf(messages); 
-    initCause(Errors.getOnlyCause(this.messages));
+    this.messages = page.foliage.guava.common.collect.ImmutableSet.copyOf(messages);
+    initCause(Messages.getOnlyCause(this.messages));
   }
 
   /** Returns a copy of this configuration exception with the specified partial value. */
@@ -59,19 +56,22 @@ public final class ConfigurationException extends RuntimeException {
   }
 
   /**
-   * Returns a value that was only partially computed due to this exception. The caller can use
-   * this while collecting additional configuration problems.
+   * Returns a value that was only partially computed due to this exception. The caller can use this
+   * while collecting additional configuration problems.
    *
    * @return the partial value, or {@code null} if none was set. The type of the partial value is
-   *      specified by the throwing method.
+   *     specified by the throwing method.
    */
-  @SuppressWarnings("unchecked") // this is *extremely* unsafe. We trust the caller here.
+  @SuppressWarnings({
+    "unchecked",
+    "TypeParameterUnusedInFormals"
+  }) // this is *extremely* unsafe. We trust the caller here.
   public <E> E getPartialValue() {
     return (E) partialValue;
   }
 
   @Override public String getMessage() {
-    return Errors.format("Guice configuration errors", messages);
+    return Messages.formatMessages("Guice configuration errors", messages);
   }
 
   private static final long serialVersionUID = 0;

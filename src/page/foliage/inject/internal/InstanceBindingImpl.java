@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,86 +16,86 @@
 
 package page.foliage.inject.internal;
 
+import static page.foliage.inject.internal.GuiceInternal.GUICE_INTERNAL;
+import static page.foliage.inject.spi.Elements.withTrustedSource;
+
+import java.util.Set;
+
 import page.foliage.guava.common.base.MoreObjects;
 import page.foliage.guava.common.base.Objects;
 import page.foliage.guava.common.collect.ImmutableSet;
 import page.foliage.inject.Binder;
 import page.foliage.inject.Key;
-import page.foliage.inject.Provider;
 import page.foliage.inject.spi.BindingTargetVisitor;
 import page.foliage.inject.spi.Dependency;
 import page.foliage.inject.spi.HasDependencies;
 import page.foliage.inject.spi.InjectionPoint;
 import page.foliage.inject.spi.InstanceBinding;
-import page.foliage.inject.util.Providers;
-
-import java.util.Set;
-
-import page.foliage.inject.internal.BindingImpl;
-import page.foliage.inject.internal.InjectorImpl;
-import page.foliage.inject.internal.InstanceBindingImpl;
-import page.foliage.inject.internal.InternalFactory;
-import page.foliage.inject.internal.Scoping;
 
 final class InstanceBindingImpl<T> extends BindingImpl<T> implements InstanceBinding<T> {
 
   final T instance;
-  final Provider<T> provider;
   final ImmutableSet<InjectionPoint> injectionPoints;
 
-  public InstanceBindingImpl(InjectorImpl injector, Key<T> key, Object source,
-      InternalFactory<? extends T> internalFactory, Set<InjectionPoint> injectionPoints,
+  public InstanceBindingImpl(
+      InjectorImpl injector,
+      Key<T> key,
+      Object source,
+      InternalFactory<? extends T> internalFactory,
+      Set<InjectionPoint> injectionPoints,
       T instance) {
     super(injector, key, source, internalFactory, Scoping.EAGER_SINGLETON);
     this.injectionPoints = ImmutableSet.copyOf(injectionPoints);
     this.instance = instance;
-    this.provider = Providers.of(instance);
   }
 
-  public InstanceBindingImpl(Object source, Key<T> key, Scoping scoping,
-      Set<InjectionPoint> injectionPoints, T instance) {
+  public InstanceBindingImpl(
+      Object source, Key<T> key, Scoping scoping, Set<InjectionPoint> injectionPoints, T instance) {
     super(source, key, scoping);
     this.injectionPoints = ImmutableSet.copyOf(injectionPoints);
     this.instance = instance;
-    this.provider = Providers.of(instance);
   }
 
-  @Override public Provider<T> getProvider() {
-    return this.provider;
-  }
-
+  @Override
   public <V> V acceptTargetVisitor(BindingTargetVisitor<? super T, V> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public T getInstance() {
     return instance;
   }
 
+  @Override
   public Set<InjectionPoint> getInjectionPoints() {
     return injectionPoints;
   }
 
+  @Override
   public Set<Dependency<?>> getDependencies() {
     return instance instanceof HasDependencies
         ? ImmutableSet.copyOf(((HasDependencies) instance).getDependencies())
         : Dependency.forInjectionPoints(injectionPoints);
   }
 
+  @Override
   public BindingImpl<T> withScoping(Scoping scoping) {
     return new InstanceBindingImpl<T>(getSource(), getKey(), scoping, injectionPoints, instance);
   }
 
+  @Override
   public BindingImpl<T> withKey(Key<T> key) {
     return new InstanceBindingImpl<T>(getSource(), key, getScoping(), injectionPoints, instance);
   }
 
+  @Override
   public void applyTo(Binder binder) {
     // instance bindings aren't scoped
-    binder.withSource(getSource()).bind(getKey()).toInstance(instance);
+    withTrustedSource(GUICE_INTERNAL, binder, getSource()).bind(getKey()).toInstance(instance);
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return MoreObjects.toStringHelper(InstanceBinding.class)
         .add("key", getKey())
         .add("source", getSource())
@@ -105,11 +105,11 @@ final class InstanceBindingImpl<T> extends BindingImpl<T> implements InstanceBin
 
   @Override
   public boolean equals(Object obj) {
-    if(obj instanceof InstanceBindingImpl) {
-      InstanceBindingImpl<?> o = (InstanceBindingImpl<?>)obj;
+    if (obj instanceof InstanceBindingImpl) {
+      InstanceBindingImpl<?> o = (InstanceBindingImpl<?>) obj;
       return getKey().equals(o.getKey())
-        && getScoping().equals(o.getScoping())
-        && Objects.equal(instance, o.instance);
+          && getScoping().equals(o.getScoping())
+          && Objects.equal(instance, o.instance);
     } else {
       return false;
     }

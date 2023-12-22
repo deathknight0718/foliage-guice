@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,23 +16,6 @@
 
 package page.foliage.inject.spi;
 
-import page.foliage.inject.spi.DisableCircularProxiesOption;
-import page.foliage.inject.spi.InjectionRequest;
-import page.foliage.inject.spi.InterceptorBinding;
-import page.foliage.inject.spi.MembersInjectorLookup;
-import page.foliage.inject.spi.Message;
-import page.foliage.inject.spi.ModuleAnnotatedMethodScannerBinding;
-import page.foliage.inject.spi.PrivateElements;
-import page.foliage.inject.spi.ProviderLookup;
-import page.foliage.inject.spi.ProvisionListenerBinding;
-import page.foliage.inject.spi.RequireAtInjectOnConstructorsOption;
-import page.foliage.inject.spi.RequireExactBindingAnnotationsOption;
-import page.foliage.inject.spi.RequireExplicitBindingsOption;
-import page.foliage.inject.spi.ScopeBinding;
-import page.foliage.inject.spi.StaticInjectionRequest;
-import page.foliage.inject.spi.TypeConverterBinding;
-import page.foliage.inject.spi.TypeListenerBinding;
-
 import page.foliage.inject.Binder;
 import page.foliage.inject.Binding;
 import page.foliage.inject.Inject;
@@ -40,59 +23,40 @@ import page.foliage.inject.Inject;
 /**
  * Visit elements.
  *
- * @param <V> any type to be returned by the visit method. Use {@link Void} with
- *     {@code return null} if no return type is needed.
- * 
+ * @param <V> any type to be returned by the visit method. Use {@link Void} with {@code return null}
+ *     if no return type is needed.
  * @since 2.0
  */
 public interface ElementVisitor<V> {
 
   /**
-   * Visit a mapping from a key (type and optional annotation) to the strategy for getting
-   * instances of the type.
+   * Visit a mapping from a key (type and optional annotation) to the strategy for getting instances
+   * of the type.
    */
   <T> V visit(Binding<T> binding);
 
-  /*if[AOP]*/
-  /**
-   * Visit a registration of interceptors for matching methods of matching classes.
-   */
+  /** Visit a registration of interceptors for matching methods of matching classes. */
   V visit(InterceptorBinding binding);
-  /*end[AOP]*/
 
-  /**
-   * Visit a registration of a scope annotation with the scope that implements it.
-   */
+  /** Visit a registration of a scope annotation with the scope that implements it. */
   V visit(ScopeBinding binding);
 
-  /**
-   * Visit a registration of type converters for matching target types.
-   */
+  /** Visit a registration of type converters for matching target types. */
   V visit(TypeConverterBinding binding);
 
-  /**
-   * Visit a request to inject the instance fields and methods of an instance.
-   */
+  /** Visit a request to inject the instance fields and methods of an instance. */
   V visit(InjectionRequest<?> request);
 
-  /**
-   * Visit a request to inject the static fields and methods of type.
-   */
+  /** Visit a request to inject the static fields and methods of type. */
   V visit(StaticInjectionRequest request);
 
-  /**
-   * Visit a lookup of the provider for a type.
-   */
+  /** Visit a lookup of the provider for a type. */
   <T> V visit(ProviderLookup<T> lookup);
 
-  /**
-   * Visit a lookup of the members injector.
-   */
+  /** Visit a lookup of the members injector. */
   <T> V visit(MembersInjectorLookup<T> lookup);
 
-  /**
-   * Visit an error message and the context in which it occured.
-   */
+  /** Visit an error message and the context in which it occured. */
   V visit(Message message);
 
   /**
@@ -101,35 +65,33 @@ public interface ElementVisitor<V> {
    */
   V visit(PrivateElements elements);
 
-  /**
-   * Visit an injectable type listener binding.
-   */
+  /** Visit an injectable type listener binding. */
   V visit(TypeListenerBinding binding);
-  
+
   /**
    * Visit a provision listener binding.
    *
    * @since 4.0
    */
   V visit(ProvisionListenerBinding binding);
-  
+
   /**
    * Visit a require explicit bindings command.
-   * 
+   *
    * @since 3.0
    */
   V visit(RequireExplicitBindingsOption option);
-  
+
   /**
    * Visit a disable circular proxies command.
-   * 
+   *
    * @since 3.0
    */
   V visit(DisableCircularProxiesOption option);
-  
+
   /**
    * Visit a require explicit {@literal @}{@link Inject} command.
-   * 
+   *
    * @since 4.0
    */
   V visit(RequireAtInjectOnConstructorsOption option);

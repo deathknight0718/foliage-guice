@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-
 /**
  * Holds a reference that requires initialization to be performed before it can be used.
  *
@@ -26,8 +23,6 @@ import page.foliage.inject.internal.ErrorsException;
  */
 interface Initializable<T> {
 
-  /**
-   * Ensures the reference is initialized, then returns it.
-   */
-  T get(Errors errors) throws ErrorsException;
+  /** Ensures the reference is initialized, then returns it. */
+  T get() throws InternalProvisionException;
 }

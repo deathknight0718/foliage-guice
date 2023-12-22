@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,13 +18,14 @@ package page.foliage.inject.internal;
 
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
-import org.aopalliance.intercept.MethodInterceptor;
-
-import page.foliage.inject.matcher.Matcher;
-
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
+
+import org.aopalliance.intercept.MethodInterceptor;
+
+import page.foliage.inject.matcher.Matcher;
+import page.foliage.inject.spi.InterceptorBinding;
 
 /**
  * Ties a matcher to a method interceptor.
@@ -37,6 +38,11 @@ final class MethodAspect {
   private final Matcher<? super Method> methodMatcher;
   private final List<MethodInterceptor> interceptors;
 
+  static MethodAspect fromBinding(InterceptorBinding binding) {
+    return new MethodAspect(
+        binding.getClassMatcher(), binding.getMethodMatcher(), binding.getInterceptors());
+  }
+
   /**
    * @param classMatcher matches classes the interceptor should apply to. For example: {@code
    *     only(Runnable.class)}.
@@ -44,15 +50,19 @@ final class MethodAspect {
    *     annotatedWith(Transactional.class)}.
    * @param interceptors to apply
    */
-  MethodAspect(Matcher<? super Class<?>> classMatcher,
-      Matcher<? super Method> methodMatcher, List<MethodInterceptor> interceptors) {
+  MethodAspect(
+      Matcher<? super Class<?>> classMatcher,
+      Matcher<? super Method> methodMatcher,
+      List<MethodInterceptor> interceptors) {
     this.classMatcher = checkNotNull(classMatcher, "class matcher");
     this.methodMatcher = checkNotNull(methodMatcher, "method matcher");
     this.interceptors = checkNotNull(interceptors, "interceptors");
   }
 
-  MethodAspect(Matcher<? super Class<?>> classMatcher,
-      Matcher<? super Method> methodMatcher, MethodInterceptor... interceptors) {
+  MethodAspect(
+      Matcher<? super Class<?>> classMatcher,
+      Matcher<? super Method> methodMatcher,
+      MethodInterceptor... interceptors) {
     this(classMatcher, methodMatcher, Arrays.asList(interceptors));
   }
 

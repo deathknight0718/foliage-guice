@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2009 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.AbstractProcessor;
-import page.foliage.inject.internal.Errors;
-
 import page.foliage.inject.spi.ProvisionListenerBinding;
 import page.foliage.inject.spi.TypeListenerBinding;
 
@@ -33,13 +30,15 @@ final class ListenerBindingProcessor extends AbstractProcessor {
     super(errors);
   }
 
-  @Override public Boolean visit(TypeListenerBinding binding) {
-    injector.state.addTypeListener(binding);
+  @Override
+  public Boolean visit(TypeListenerBinding binding) {
+    injector.getBindingData().addTypeListener(binding);
     return true;
   }
-  
-  @Override public Boolean visit(ProvisionListenerBinding binding) {
-    injector.state.addProvisionListener(binding);
+
+  @Override
+  public Boolean visit(ProvisionListenerBinding binding) {
+    injector.getBindingData().addProvisionListener(binding);
     return true;
   }
 }

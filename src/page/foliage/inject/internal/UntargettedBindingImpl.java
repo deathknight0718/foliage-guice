@@ -16,13 +16,8 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.BindingImpl;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.InjectorImpl;
-import page.foliage.inject.internal.InternalContext;
-import page.foliage.inject.internal.InternalFactory;
-import page.foliage.inject.internal.Scoping;
-import page.foliage.inject.internal.UntargettedBindingImpl;
+import static page.foliage.inject.internal.GuiceInternal.GUICE_INTERNAL;
+import static page.foliage.inject.spi.Elements.withTrustedSource;
 
 import page.foliage.guava.common.base.MoreObjects;
 import page.foliage.guava.common.base.Objects;
@@ -35,34 +30,45 @@ import page.foliage.inject.spi.UntargettedBinding;
 final class UntargettedBindingImpl<T> extends BindingImpl<T> implements UntargettedBinding<T> {
 
   UntargettedBindingImpl(InjectorImpl injector, Key<T> key, Object source) {
-    super(injector, key, source, new InternalFactory<T>() {
-      public T get(Errors errors, InternalContext context, Dependency<?> dependency, boolean linked) {
-        throw new AssertionError();
-      }
-    }, Scoping.UNSCOPED);
+    super(
+        injector,
+        key,
+        source,
+        new InternalFactory<T>() {
+          @Override
+          public T get(InternalContext context, Dependency<?> dependency, boolean linked) {
+            throw new AssertionError();
+          }
+        },
+        Scoping.UNSCOPED);
   }
 
   public UntargettedBindingImpl(Object source, Key<T> key, Scoping scoping) {
     super(source, key, scoping);
   }
 
+  @Override
   public <V> V acceptTargetVisitor(BindingTargetVisitor<? super T, V> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public BindingImpl<T> withScoping(Scoping scoping) {
     return new UntargettedBindingImpl<T>(getSource(), getKey(), scoping);
   }
 
+  @Override
   public BindingImpl<T> withKey(Key<T> key) {
     return new UntargettedBindingImpl<T>(getSource(), key, getScoping());
   }
 
+  @Override
   public void applyTo(Binder binder) {
-    getScoping().applyTo(binder.withSource(getSource()).bind(getKey()));
+    getScoping().applyTo(withTrustedSource(GUICE_INTERNAL, binder, getSource()).bind(getKey()));
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return MoreObjects.toStringHelper(UntargettedBinding.class)
         .add("key", getKey())
         .add("source", getSource())
@@ -71,10 +77,9 @@ final class UntargettedBindingImpl<T> extends BindingImpl<T> implements Untarget
 
   @Override
   public boolean equals(Object obj) {
-    if(obj instanceof UntargettedBindingImpl) {
-      UntargettedBindingImpl<?> o = (UntargettedBindingImpl<?>)obj;
-      return getKey().equals(o.getKey())
-        && getScoping().equals(o.getScoping());
+    if (obj instanceof UntargettedBindingImpl) {
+      UntargettedBindingImpl<?> o = (UntargettedBindingImpl<?>) obj;
+      return getKey().equals(o.getKey()) && getScoping().equals(o.getScoping());
     } else {
       return false;
     }

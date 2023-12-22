@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2009 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,7 @@ import page.foliage.inject.Binder;
 import page.foliage.inject.Key;
 import page.foliage.inject.binder.AnnotatedElementBuilder;
 
-/**
- * For private binder's expose() method.
- */
+/** For private binder's expose() method. */
 public class ExposureBuilder<T> implements AnnotatedElementBuilder {
   private final Binder binder;
   private final Object source;
@@ -43,16 +41,18 @@ public class ExposureBuilder<T> implements AnnotatedElementBuilder {
     }
   }
 
+  @Override
   public void annotatedWith(Class<? extends Annotation> annotationType) {
     Preconditions.checkNotNull(annotationType, "annotationType");
     checkNotAnnotated();
-    key = Key.get(key.getTypeLiteral(), annotationType);
+    key = key.withAnnotation(annotationType);
   }
 
+  @Override
   public void annotatedWith(Annotation annotation) {
     Preconditions.checkNotNull(annotation, "annotation");
     checkNotAnnotated();
-    key = Key.get(key.getTypeLiteral(), annotation);
+    key = key.withAnnotation(annotation);
   }
 
   public Key<?> getKey() {
@@ -63,7 +63,8 @@ public class ExposureBuilder<T> implements AnnotatedElementBuilder {
     return source;
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return "AnnotatedElementBuilder";
   }
 }

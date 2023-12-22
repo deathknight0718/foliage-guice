@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,6 @@ package page.foliage.inject.spi;
 
 import java.util.Set;
 
-import page.foliage.inject.spi.HasDependencies;
-import page.foliage.inject.spi.InjectionPoint;
-
 import page.foliage.inject.Binding;
 import page.foliage.inject.Provider;
 
@@ -36,14 +33,15 @@ public interface ProviderInstanceBinding<T> extends Binding<T>, HasDependencies 
   /**
    * If the user supplied a JSR330 binding, then this will wrap that one. To always return the
    * user-supplied provider, use {@link #getUserSuppliedProvider}.
-   * 
+   *
    * @deprecated Use {@link #getUserSuppliedProvider} instead.
    */
   @Deprecated
   Provider<? extends T> getProviderInstance();
-  
+
   /**
    * Returns the user-supplied, unscoped provider.
+   *
    * @since 4.0
    */
   javax.inject.Provider<? extends T> getUserSuppliedProvider();
@@ -55,5 +53,4 @@ public interface ProviderInstanceBinding<T> extends Binding<T>, HasDependencies 
    * @return a possibly empty set
    */
   Set<InjectionPoint> getInjectionPoints();
-
 }

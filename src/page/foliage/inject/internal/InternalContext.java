@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,131 +16,88 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.guava.common.collect.ImmutableList;
-import page.foliage.guava.common.collect.Lists;
-import page.foliage.guava.common.collect.Maps;
-import page.foliage.inject.Key;
+import java.util.IdentityHashMap;
+
 import page.foliage.inject.internal.InjectorImpl.InjectorOptions;
 import page.foliage.inject.spi.Dependency;
-import page.foliage.inject.spi.DependencyAndSource;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import page.foliage.inject.internal.ConstructionContext;
 
 /**
- * Internal context. Used to coordinate injections and support circular
- * dependencies.
+ * Internal context. Used to coordinate injections and support circular dependencies.
  *
  * @author crazybob@google.com (Bob Lee)
  */
-final class InternalContext {
+final class InternalContext implements AutoCloseable {
 
   private final InjectorOptions options;
 
-  private Map<Object, ConstructionContext<?>> constructionContexts = Maps.newHashMap();
+  private final IdentityHashMap<Object, ConstructionContext<?>> constructionContexts =
+      new IdentityHashMap<>();
 
   /** Keeps track of the type that is currently being requested for injection. */
   private Dependency<?> dependency;
 
-  /** Keeps track of the hierarchy of types needed during injection. */
-  private final DependencyStack state = new DependencyStack();
+  /**
+   * The number of times {@link #enter()} has been called + 1 for initial construction. This value
+   * is decremented when {@link #exit()} is called.
+   */
+  private int enterCount;
 
-  InternalContext(InjectorOptions options) {
+  /**
+   * A single element array to clear when the {@link #enterCount} hits {@code 0}.
+   *
+   * <p>This is the value stored in the {@code InjectorImpl.localContext} thread local.
+   */
+  private final Object[] toClear;
+
+  InternalContext(InjectorOptions options, Object[] toClear) {
     this.options = options;
+    this.toClear = toClear;
+    this.enterCount = 1;
   }
 
-  public InjectorOptions getInjectorOptions() {
+  /** Should only be called by InjectorImpl.enterContext(). */
+  void enter() {
+    enterCount++;
+  }
+
+  /** Should be called any any method that received an instance via InjectorImpl.enterContext(). */
+  @Override
+  public void close() {
+    int newCount = --enterCount;
+    if (newCount < 0) {
+      throw new IllegalStateException("Called close() too many times");
+    }
+    if (newCount == 0) {
+      toClear[0] = null;
+    }
+  }
+
+  InjectorOptions getInjectorOptions() {
     return options;
   }
 
   @SuppressWarnings("unchecked")
-  public <T> ConstructionContext<T> getConstructionContext(Object key) {
-    ConstructionContext<T> constructionContext
-        = (ConstructionContext<T>) constructionContexts.get(key);
+  <T> ConstructionContext<T> getConstructionContext(Object key) {
+    ConstructionContext<T> constructionContext =
+        (ConstructionContext<T>) constructionContexts.get(key);
     if (constructionContext == null) {
-      constructionContext = new ConstructionContext<T>();
+      constructionContext = new ConstructionContext<>();
       constructionContexts.put(key, constructionContext);
     }
     return constructionContext;
   }
 
-  public Dependency<?> getDependency() {
+  Dependency<?> getDependency() {
     return dependency;
   }
 
-  /** Sets the new current dependency & adds it to the state. */
-  public Dependency<?> pushDependency(Dependency<?> dependency, Object source) {
-    Dependency<?> previous = this.dependency;
-    this.dependency = dependency;
-    state.add(dependency, source);
-    return previous;
-  }
-
-  /** Pops the current state & sets the new dependency. */
-  public void popStateAndSetDependency(Dependency<?> newDependency) {
-    state.pop();
-    this.dependency = newDependency;
-  }
-
-  /** Adds to the state without setting the dependency. */
-  public void pushState(Key<?> key, Object source) {
-    state.add(key, source);
-  }
-  
-  /** Pops from the state without setting a dependency. */
-  public void popState() {
-    state.pop();
-  }
-
-  /** Returns the current dependency chain (all the state). */
-  public List<DependencyAndSource> getDependencyChain() {
-    ImmutableList.Builder<DependencyAndSource> builder = ImmutableList.builder();
-    for (int i = 0; i < state.size(); i += 2) {
-      Object evenEntry = state.get(i);
-      Dependency<?> dependency;
-      if (evenEntry instanceof Key) {
-        dependency = Dependency.get((Key<?>) evenEntry);
-      } else {
-        dependency = (Dependency<?>) evenEntry;
-      }
-      builder.add(new DependencyAndSource(dependency, state.get(i + 1)));
-    }
-    return builder.build();
-  }
-
   /**
-   * Keeps track of the hierarchy of types needed during injection.
+   * Used to set the current dependency.
    *
-   * <p>This is a pairwise combination of dependencies and sources, with dependencies or keys on
-   * even indices, and sources on odd indices. This structure is to avoid the memory overhead of
-   * DependencyAndSource objects, which can add to several tens of megabytes in large applications.
+   * <p>The currentDependency field is only used by InternalFactoryToProviderAdapter to propagate
+   * information to singleton scope. See comments in that class about alternatives.
    */
-  private static final class DependencyStack {
-    private Object[] elements = new Object[16];
-    private int size = 0;
-
-    public void add(Object dependencyOrKey, Object source) {
-      if (elements.length < size + 2) {
-        elements = Arrays.copyOf(elements, (elements.length*3)/2 + 2);
-      }
-      elements[size++] = dependencyOrKey;
-      elements[size++] = source;
-    }
-
-    public void pop() {
-      elements[--size] = null;
-      elements[--size] = null;
-    }
-
-    public Object get(int i) {
-      return elements[i];
-    }
-
-    public int size() {
-      return size;
-    }
+  void setDependency(Dependency<?> dependency) {
+    this.dependency = dependency;
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +18,6 @@ package page.foliage.inject.spi;
 
 import java.util.Set;
 
-import page.foliage.inject.spi.Dependency;
-import page.foliage.inject.spi.HasDependencies;
-import page.foliage.inject.spi.TypeConverterBinding;
-
 import page.foliage.inject.Binding;
 import page.foliage.inject.Key;
 
@@ -34,14 +30,12 @@ import page.foliage.inject.Key;
  */
 public interface ConvertedConstantBinding<T> extends Binding<T>, HasDependencies {
 
-  /**
-   * Returns the converted value.
-   */
+  /** Returns the converted value. */
   T getValue();
 
   /**
    * Returns the type converter binding used to convert the constant.
-   * 
+   *
    * @since 3.0
    */
   TypeConverterBinding getTypeConverterBinding();
@@ -52,8 +46,7 @@ public interface ConvertedConstantBinding<T> extends Binding<T>, HasDependencies
    */
   Key<String> getSourceKey();
 
-  /**
-   * Returns a singleton set containing only the converted key.
-   */
+  /** Returns a singleton set containing only the converted key. */
+  @Override
   Set<Dependency<?>> getDependencies();
 }

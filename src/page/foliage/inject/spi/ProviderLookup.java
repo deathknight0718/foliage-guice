@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,22 +19,21 @@ package page.foliage.inject.spi;
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 import static page.foliage.guava.common.base.Preconditions.checkState;
 
+import java.util.Set;
+
+import page.foliage.guava.common.base.MoreObjects;
+import page.foliage.guava.common.base.Objects;
 import page.foliage.guava.common.collect.ImmutableSet;
 import page.foliage.inject.Binder;
 import page.foliage.inject.Key;
 import page.foliage.inject.Provider;
+import page.foliage.inject.internal.Errors;
 import page.foliage.inject.util.Types;
 
-import java.util.Set;
-
-import page.foliage.inject.spi.Dependency;
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.ProviderWithDependencies;
-
 /**
- * A lookup of the provider for a type. Lookups are created explicitly in a module using
- * {@link page.foliage.inject.Binder#getProvider(Class) getProvider()} statements:
+ * A lookup of the provider for a type. Lookups are created explicitly in a module using {@link
+ * page.foliage.inject.Binder#getProvider(Class) getProvider()} statements:
+ *
  * <pre>
  *     Provider&lt;PaymentService&gt; paymentServiceProvider
  *         = getProvider(PaymentService.class);</pre>
@@ -57,6 +56,7 @@ public final class ProviderLookup<T> implements Element {
     this.dependency = checkNotNull(dependency, "dependency");
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
@@ -70,6 +70,7 @@ public final class ProviderLookup<T> implements Element {
     return dependency;
   }
 
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
   }
@@ -84,6 +85,7 @@ public final class ProviderLookup<T> implements Element {
     this.delegate = checkNotNull(delegate, "delegate");
   }
 
+  @Override
   public void applyTo(Binder binder) {
     initializeDelegate(binder.withSource(getSource()).getProvider(dependency));
   }
@@ -103,12 +105,17 @@ public final class ProviderLookup<T> implements Element {
    */
   public Provider<T> getProvider() {
     return new ProviderWithDependencies<T>() {
+      @Override
       public T get() {
-        checkState(delegate != null,
-            "This Provider cannot be used until the Injector has been created.");
-        return delegate.get();
+        Provider<T> local = delegate;
+        if (local == null) {
+          throw new IllegalStateException(
+              "This Provider cannot be used until the Injector has been created.");
+        }
+        return local.get();
       }
 
+      @Override
       public Set<Dependency<?>> getDependencies() {
         // We depend on Provider<T>, not T directly.  This is an important distinction
         // for dependency analysis tools that short-circuit on providers.
@@ -116,9 +123,30 @@ public final class ProviderLookup<T> implements Element {
         return ImmutableSet.<Dependency<?>>of(Dependency.get(providerKey));
       }
 
-      @Override public String toString() {
+      @Override
+      public String toString() {
         return "Provider<" + getKey().getTypeLiteral() + ">";
       }
     };
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(ProviderLookup.class)
+        .add("dependency", dependency)
+        .add("source", Errors.convert(source))
+        .toString();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof ProviderLookup
+        && ((ProviderLookup<?>) obj).dependency.equals(dependency)
+        && ((ProviderLookup<?>) obj).source.equals(source);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(dependency, source);
   }
 }

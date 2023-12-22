@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2009 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,15 @@
 
 package page.foliage.inject.internal;
 
+import static page.foliage.guava.common.collect.ImmutableListMultimap.flatteningToImmutableListMultimap;
+
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+
 import page.foliage.guava.common.collect.ImmutableList;
+import page.foliage.guava.common.collect.ImmutableListMultimap;
 import page.foliage.guava.common.collect.Lists;
 import page.foliage.guava.common.collect.Sets;
 import page.foliage.inject.ConfigurationException;
@@ -24,20 +32,6 @@ import page.foliage.inject.TypeLiteral;
 import page.foliage.inject.spi.InjectionPoint;
 import page.foliage.inject.spi.TypeListener;
 import page.foliage.inject.spi.TypeListenerBinding;
-
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Set;
-
-import page.foliage.inject.internal.EncounterImpl;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-import page.foliage.inject.internal.FailableCache;
-import page.foliage.inject.internal.InjectorImpl;
-import page.foliage.inject.internal.MembersInjectorImpl;
-import page.foliage.inject.internal.SingleFieldInjector;
-import page.foliage.inject.internal.SingleMemberInjector;
-import page.foliage.inject.internal.SingleMethodInjector;
 
 /**
  * Members injectors by type.
@@ -48,16 +42,16 @@ final class MembersInjectorStore {
   private final InjectorImpl injector;
   private final ImmutableList<TypeListenerBinding> typeListenerBindings;
 
-  private final FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>> cache
-      = new FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>>() {
-    @Override protected MembersInjectorImpl<?> create(TypeLiteral<?> type, Errors errors)
-        throws ErrorsException {
-      return createWithListeners(type, errors);
-    }
-  };
+  private final FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>> cache =
+      new FailableCache<TypeLiteral<?>, MembersInjectorImpl<?>>() {
+        @Override
+        protected MembersInjectorImpl<?> create(TypeLiteral<?> type, Errors errors)
+            throws ErrorsException {
+          return createWithListeners(type, errors);
+        }
+      };
 
-  MembersInjectorStore(InjectorImpl injector,
-      List<TypeListenerBinding> typeListenerBindings) {
+  MembersInjectorStore(InjectorImpl injector, List<TypeListenerBinding> typeListenerBindings) {
     this.injector = injector;
     this.typeListenerBindings = ImmutableList.copyOf(typeListenerBindings);
   }
@@ -70,9 +64,7 @@ final class MembersInjectorStore {
     return !typeListenerBindings.isEmpty();
   }
 
-  /**
-   * Returns a new complete members injector with injection listeners registered.
-   */
+  /** Returns a new complete members injector with injection listeners registered. */
   @SuppressWarnings("unchecked") // the MembersInjector type always agrees with the passed type
   public <T> MembersInjectorImpl<T> get(TypeLiteral<T> key, Errors errors) throws ErrorsException {
     return (MembersInjectorImpl<T>) cache.get(key, errors);
@@ -84,16 +76,14 @@ final class MembersInjectorStore {
    * ImplicitBindingTest#testCircularJitBindingsLeaveNoResidue and
    * #testInstancesRequestingProvidersForThemselvesWithChildInjectors for examples of when this is
    * necessary.)
-   * 
-   * Returns true if the type was stored in the cache, false otherwise.
+   *
+   * <p>Returns true if the type was stored in the cache, false otherwise.
    */
   boolean remove(TypeLiteral<?> type) {
     return cache.remove(type);
   }
 
-  /**
-   * Creates a new members injector and attaches both injection listeners and method aspects.
-   */
+  /** Creates a new members injector and attaches both injection listeners and method aspects. */
   private <T> MembersInjectorImpl<T> createWithListeners(TypeLiteral<T> type, Errors errors)
       throws ErrorsException {
     int numErrorsBefore = errors.size();
@@ -108,7 +98,7 @@ final class MembersInjectorStore {
     ImmutableList<SingleMemberInjector> injectors = getInjectors(injectionPoints, errors);
     errors.throwIfNewErrors(numErrorsBefore);
 
-    EncounterImpl<T> encounter = new EncounterImpl<T>(errors, injector.lookups);
+    EncounterImpl<T> encounter = new EncounterImpl<>(errors, injector.lookups);
     Set<TypeListener> alreadySeenListeners = Sets.newHashSet();
     for (TypeListenerBinding binding : typeListenerBindings) {
       TypeListener typeListener = binding.getListener();
@@ -127,25 +117,32 @@ final class MembersInjectorStore {
     return new MembersInjectorImpl<T>(injector, type, encounter, injectors);
   }
 
-  /**
-   * Returns the injectors for the specified injection points.
-   */
+  /** Returns the injectors for the specified injection points. */
   ImmutableList<SingleMemberInjector> getInjectors(
       Set<InjectionPoint> injectionPoints, Errors errors) {
     List<SingleMemberInjector> injectors = Lists.newArrayList();
     for (InjectionPoint injectionPoint : injectionPoints) {
       try {
-        Errors errorsForMember = injectionPoint.isOptional()
-            ? new Errors(injectionPoint)
-            : errors.withSource(injectionPoint);
-        SingleMemberInjector injector = injectionPoint.getMember() instanceof Field
-            ? new SingleFieldInjector(this.injector, injectionPoint, errorsForMember)
-            : new SingleMethodInjector(this.injector, injectionPoint, errorsForMember);
+        Errors errorsForMember =
+            injectionPoint.isOptional()
+                ? new Errors(injectionPoint)
+                : errors.withSource(injectionPoint);
+        SingleMemberInjector injector =
+            injectionPoint.getMember() instanceof Field
+                ? new SingleFieldInjector(this.injector, injectionPoint, errorsForMember)
+                : new SingleMethodInjector(this.injector, injectionPoint, errorsForMember);
         injectors.add(injector);
       } catch (ErrorsException ignoredForNow) {
         // ignored for now
       }
     }
     return ImmutableList.copyOf(injectors);
+  }
+
+  ImmutableListMultimap<TypeLiteral<?>, InjectionPoint> getAllInjectionPoints() {
+    return cache.asMap().entrySet().stream()
+        .collect(
+            flatteningToImmutableListMultimap(
+                Entry::getKey, entry -> entry.getValue().getInjectionPoints().stream()));
   }
 }

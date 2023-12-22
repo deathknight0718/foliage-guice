@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,17 +18,14 @@ package page.foliage.inject.spi;
 
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.List;
+import java.util.Set;
+
 import page.foliage.guava.common.base.Objects;
 import page.foliage.guava.common.collect.ImmutableSet;
 import page.foliage.guava.common.collect.Lists;
 import page.foliage.inject.Key;
 import page.foliage.inject.internal.MoreTypes;
-
-import java.util.List;
-import java.util.Set;
-
-import page.foliage.inject.spi.Dependency;
-import page.foliage.inject.spi.InjectionPoint;
 
 /**
  * A variable that can be resolved by an injector.
@@ -61,9 +58,7 @@ public final class Dependency<T> {
     return new Dependency<T>(null, MoreTypes.canonicalizeKey(key), true, -1);
   }
 
-  /**
-   * Returns the dependencies from the given injection points.
-   */
+  /** Returns the dependencies from the given injection points. */
   public static Set<Dependency<?>> forInjectionPoints(Set<InjectionPoint> injectionPoints) {
     List<Dependency<?>> dependencies = Lists.newArrayList();
     for (InjectionPoint injectionPoint : injectionPoints) {
@@ -72,16 +67,12 @@ public final class Dependency<T> {
     return ImmutableSet.copyOf(dependencies);
   }
 
-  /**
-   * Returns the key to the binding that satisfies this dependency.
-   */
+  /** Returns the key to the binding that satisfies this dependency. */
   public Key<T> getKey() {
     return this.key;
   }
 
-  /**
-   * Returns true if null is a legal value for this dependency.
-   */
+  /** Returns true if null is a legal value for this dependency. */
   public boolean isNullable() {
     return nullable;
   }
@@ -103,28 +94,31 @@ public final class Dependency<T> {
     return parameterIndex;
   }
 
-  @Override public int hashCode() {
+  @Override
+  public int hashCode() {
     return Objects.hashCode(injectionPoint, parameterIndex, key);
   }
 
-  @Override public boolean equals(Object o) {
+  @Override
+  public boolean equals(Object o) {
     if (o instanceof Dependency) {
-      Dependency dependency = (Dependency) o;
+      Dependency<?> dependency = (Dependency<?>) o;
       return Objects.equal(injectionPoint, dependency.injectionPoint)
-          && Objects.equal(parameterIndex, dependency.parameterIndex)
-          && Objects.equal(key, dependency.key);
+          && parameterIndex == dependency.parameterIndex
+          && key.equals(dependency.key);
     } else {
       return false;
     }
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(key);
     if (injectionPoint != null) {
-      builder.append("@").append(injectionPoint);
+      builder.append('@').append(injectionPoint);
       if (parameterIndex != -1) {
-        builder.append("[").append(parameterIndex).append("]");
+        builder.append('[').append(parameterIndex).append(']');
       }
     }
     return builder.toString();

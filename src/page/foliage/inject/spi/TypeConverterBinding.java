@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,21 +18,19 @@ package page.foliage.inject.spi;
 
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.TypeConverter;
-
 import page.foliage.inject.Binder;
 import page.foliage.inject.TypeLiteral;
 import page.foliage.inject.internal.Errors;
 import page.foliage.inject.matcher.Matcher;
 
 /**
- * Registration of type converters for matching target types. Instances are created
- * explicitly in a module using {@link page.foliage.inject.Binder#convertToTypes(Matcher,
- * TypeConverter) convertToTypes()} statements:
+ * Registration of type converters for matching target types. Instances are created explicitly in a
+ * module using {@link page.foliage.inject.Binder#convertToTypes(Matcher, TypeConverter)
+ * convertToTypes()} statements:
+ *
  * <pre>
- *     convertToTypes(Matchers.only(TypeLiteral.get(DateTime.class)), new DateTimeConverter());</pre>
+ *     convertToTypes(Matchers.only(TypeLiteral.get(DateTime.class)), new DateTimeConverter());
+ * </pre>
  *
  * @author jessewilson@google.com (Jesse Wilson)
  * @since 2.0
@@ -43,13 +41,14 @@ public final class TypeConverterBinding implements Element {
   private final TypeConverter typeConverter;
 
   /** @since 3.0 */
-  public TypeConverterBinding(Object source, Matcher<? super TypeLiteral<?>> typeMatcher,
-      TypeConverter typeConverter) {
+  public TypeConverterBinding(
+      Object source, Matcher<? super TypeLiteral<?>> typeMatcher, TypeConverter typeConverter) {
     this.source = checkNotNull(source, "source");
     this.typeMatcher = checkNotNull(typeMatcher, "typeMatcher");
     this.typeConverter = checkNotNull(typeConverter, "typeConverter");
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
@@ -62,16 +61,23 @@ public final class TypeConverterBinding implements Element {
     return typeConverter;
   }
 
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public void applyTo(Binder binder) {
     binder.withSource(getSource()).convertToTypes(typeMatcher, typeConverter);
   }
 
-  @Override public String toString() {
-    return typeConverter + " which matches " + typeMatcher
-        + " (bound at " + Errors.convert(source) + ")";
+  @Override
+  public String toString() {
+    return typeConverter
+        + " which matches "
+        + typeMatcher
+        + " (bound at "
+        + Errors.convert(source)
+        + ")";
   }
 }

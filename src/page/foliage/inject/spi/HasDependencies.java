@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,8 +18,6 @@ package page.foliage.inject.spi;
 
 import java.util.Set;
 
-import page.foliage.inject.spi.Dependency;
-
 /**
  * Implemented by {@link page.foliage.inject.Binding bindings}, {@link page.foliage.inject.Provider
  * providers} and instances that expose their dependencies explicitly.
@@ -33,7 +31,7 @@ public interface HasDependencies {
    * Returns the known dependencies for this type. If this has dependencies whose values are not
    * known statically, a dependency for the {@link page.foliage.inject.Injector Injector} will be
    * included in the returned set.
-   * 
+   *
    * @return a possibly empty set
    */
   Set<Dependency<?>> getDependencies();

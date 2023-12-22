@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,15 +16,11 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.InternalContext;
-
 import page.foliage.inject.spi.InjectionPoint;
 
-/**
- * Injects a field or method of a given object.
- */
+/** Injects a field or method of a given object. */
 interface SingleMemberInjector {
-  void inject(Errors errors, InternalContext context, Object o);
+  void inject(InternalContext context, Object o) throws InternalProvisionException;
+
   InjectionPoint getInjectionPoint();
 }

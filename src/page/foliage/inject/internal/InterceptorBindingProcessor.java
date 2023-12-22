@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,6 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.AbstractProcessor;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.MethodAspect;
-
 import page.foliage.inject.spi.InterceptorBinding;
 
 /**
@@ -34,9 +30,14 @@ final class InterceptorBindingProcessor extends AbstractProcessor {
     super(errors);
   }
 
-  @Override public Boolean visit(InterceptorBinding command) {
-    injector.state.addMethodAspect(new MethodAspect(
-        command.getClassMatcher(), command.getMethodMatcher(), command.getInterceptors()));
+  @Override
+  public Boolean visit(InterceptorBinding command) {
+    if (InternalFlags.isBytecodeGenEnabled()) {
+      injector.getBindingData().addInterceptorBinding(command);
+    } else {
+      errors.aopDisabled(command);
+    }
+
     return true;
   }
 }

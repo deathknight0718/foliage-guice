@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,23 +18,20 @@ package page.foliage.inject.spi;
 
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
+import java.lang.reflect.Method;
+import java.util.List;
+
+import org.aopalliance.intercept.MethodInterceptor;
+
 import page.foliage.guava.common.collect.ImmutableList;
 import page.foliage.inject.Binder;
 import page.foliage.inject.matcher.Matcher;
 
-import org.aopalliance.intercept.MethodInterceptor;
-
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.TypeEncounter;
-
-import java.lang.reflect.Method;
-import java.util.List;
-
 /**
  * Registration of interceptors for matching methods of matching classes. Instances are created
- * explicitly in a module using {@link page.foliage.inject.Binder#bindInterceptor(
- * Matcher, Matcher, MethodInterceptor[]) bindInterceptor()} statements:
+ * explicitly in a module using {@link page.foliage.inject.Binder#bindInterceptor( Matcher, Matcher,
+ * MethodInterceptor[]) bindInterceptor()} statements:
+ *
  * <pre>
  *     bindInterceptor(Matchers.subclassesOf(MyAction.class),
  *         Matchers.annotatedWith(Transactional.class),
@@ -63,6 +60,7 @@ public final class InterceptorBinding implements Element {
     this.interceptors = ImmutableList.copyOf(interceptors);
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
@@ -79,12 +77,18 @@ public final class InterceptorBinding implements Element {
     return interceptors;
   }
 
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public void applyTo(Binder binder) {
-    binder.withSource(getSource()).bindInterceptor(classMatcher, methodMatcher,
-        interceptors.toArray(new MethodInterceptor[interceptors.size()]));
+    binder
+        .withSource(getSource())
+        .bindInterceptor(
+            classMatcher,
+            methodMatcher,
+            interceptors.toArray(new MethodInterceptor[interceptors.size()]));
   }
 }

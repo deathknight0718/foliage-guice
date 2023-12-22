@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import page.foliage.inject.binder.AnnotatedElementBuilder;
 /**
  * Returns a binder whose configuration information is hidden from its environment by default. See
  * {@link page.foliage.inject.PrivateModule PrivateModule} for details.
- * 
+ *
  * @author jessewilson@google.com (Jesse Wilson)
  * @since 2.0
  */
@@ -32,8 +32,8 @@ public interface PrivateBinder extends Binder {
 
   /**
    * Makes a binding for {@code type} available to the enclosing environment. Use {@link
-   * page.foliage.inject.binder.AnnotatedElementBuilder#annotatedWith(Class) annotatedWith()} to expose {@code type} with a
-   * binding annotation.
+   * page.foliage.inject.binder.AnnotatedElementBuilder#annotatedWith(Class) annotatedWith()} to
+   * expose {@code type} with a binding annotation.
    */
   AnnotatedElementBuilder expose(Class<?> type);
 
@@ -44,7 +44,9 @@ public interface PrivateBinder extends Binder {
    */
   AnnotatedElementBuilder expose(TypeLiteral<?> type);
 
+  @Override
   PrivateBinder withSource(Object source);
 
-  PrivateBinder skipSources(Class... classesToSkip);
+  @Override
+  PrivateBinder skipSources(Class<?>... classesToSkip);
 }

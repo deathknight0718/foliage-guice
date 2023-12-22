@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,10 +16,6 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-import page.foliage.inject.internal.InternalContext;
-
 import page.foliage.inject.spi.Dependency;
 
 /**
@@ -31,12 +27,12 @@ interface InternalFactory<T> {
 
   /**
    * Creates an object to be injected.
+   *
    * @param context of this injection
    * @param linked true if getting as a result of a linked binding
-   *
-   * @throws page.foliage.inject.internal.ErrorsException if a value cannot be provided
-   * @return instance to be injected
+   * @throws page.foliage.inject.internal.InternalProvisionException if a value cannot be provided
+   * @return instance that was created
    */
-  T get(Errors errors, InternalContext context, Dependency<?> dependency, boolean linked)
-      throws ErrorsException;
+  T get(InternalContext context, Dependency<?> dependency, boolean linked)
+      throws InternalProvisionException;
 }

@@ -16,6 +16,11 @@
 
 package page.foliage.inject.internal;
 
+import static page.foliage.inject.internal.GuiceInternal.GUICE_INTERNAL;
+import static page.foliage.inject.spi.Elements.withTrustedSource;
+
+import java.util.Set;
+
 import page.foliage.guava.common.base.MoreObjects;
 import page.foliage.guava.common.base.Objects;
 import page.foliage.guava.common.collect.ImmutableSet;
@@ -26,55 +31,63 @@ import page.foliage.inject.spi.Dependency;
 import page.foliage.inject.spi.HasDependencies;
 import page.foliage.inject.spi.LinkedKeyBinding;
 
-import java.util.Set;
-
-import page.foliage.inject.internal.BindingImpl;
-import page.foliage.inject.internal.InjectorImpl;
-import page.foliage.inject.internal.InternalFactory;
-import page.foliage.inject.internal.LinkedBindingImpl;
-import page.foliage.inject.internal.Scoping;
-
-public final class LinkedBindingImpl<T> extends BindingImpl<T> implements LinkedKeyBinding<T>, HasDependencies {
+final class LinkedBindingImpl<T> extends BindingImpl<T>
+    implements LinkedKeyBinding<T>, HasDependencies {
 
   final Key<? extends T> targetKey;
 
-  public LinkedBindingImpl(InjectorImpl injector, Key<T> key, Object source,
-      InternalFactory<? extends T> internalFactory, Scoping scoping,
+  LinkedBindingImpl(
+      InjectorImpl injector,
+      Key<T> key,
+      Object source,
+      InternalFactory<? extends T> internalFactory,
+      Scoping scoping,
       Key<? extends T> targetKey) {
     super(injector, key, source, internalFactory, scoping);
     this.targetKey = targetKey;
   }
 
-  public LinkedBindingImpl(Object source, Key<T> key, Scoping scoping, Key<? extends T> targetKey) {
+  LinkedBindingImpl(Object source, Key<T> key, Scoping scoping, Key<? extends T> targetKey) {
     super(source, key, scoping);
     this.targetKey = targetKey;
   }
 
+  @Override
   public <V> V acceptTargetVisitor(BindingTargetVisitor<? super T, V> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public Key<? extends T> getLinkedKey() {
     return targetKey;
   }
 
+  @Override
   public Set<Dependency<?>> getDependencies() {
     return ImmutableSet.<Dependency<?>>of(Dependency.get(targetKey));
   }
 
+  @Override
   public BindingImpl<T> withScoping(Scoping scoping) {
     return new LinkedBindingImpl<T>(getSource(), getKey(), scoping, targetKey);
   }
 
+  @Override
   public BindingImpl<T> withKey(Key<T> key) {
     return new LinkedBindingImpl<T>(getSource(), key, getScoping(), targetKey);
   }
 
+  @Override
   public void applyTo(Binder binder) {
-    getScoping().applyTo(binder.withSource(getSource()).bind(getKey()).to(getLinkedKey()));
+    getScoping()
+        .applyTo(
+            withTrustedSource(GUICE_INTERNAL, binder, getSource())
+                .bind(getKey())
+                .to(getLinkedKey()));
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return MoreObjects.toStringHelper(LinkedKeyBinding.class)
         .add("key", getKey())
         .add("source", getSource())
@@ -85,11 +98,11 @@ public final class LinkedBindingImpl<T> extends BindingImpl<T> implements Linked
 
   @Override
   public boolean equals(Object obj) {
-    if(obj instanceof LinkedBindingImpl) {
-      LinkedBindingImpl<?> o = (LinkedBindingImpl<?>)obj;
+    if (obj instanceof LinkedBindingImpl) {
+      LinkedBindingImpl<?> o = (LinkedBindingImpl<?>) obj;
       return getKey().equals(o.getKey())
-        && getScoping().equals(o.getScoping())
-        && Objects.equal(targetKey, o.targetKey);
+          && getScoping().equals(o.getScoping())
+          && Objects.equal(targetKey, o.targetKey);
     } else {
       return false;
     }

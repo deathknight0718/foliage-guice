@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +16,13 @@
 
 package page.foliage.inject.internal;
 
-import static page.foliage.guava.common.base.Preconditions.checkNotNull;
-
 import javax.inject.Provider;
 
 import page.foliage.inject.Key;
 import page.foliage.inject.internal.InjectorImpl.JitLimitation;
 import page.foliage.inject.spi.Dependency;
 
-/**
- * Delegates to a custom factory which is also bound in the injector.
- */
+/** Delegates to a custom factory which is also bound in the injector. */
 final class BoundProviderFactory<T> extends ProviderInternalFactory<T> implements CreationListener {
 
   private final ProvisionListenerStackCallback<T> provisionCallback;
@@ -40,42 +36,48 @@ final class BoundProviderFactory<T> extends ProviderInternalFactory<T> implement
       Object source,
       ProvisionListenerStackCallback<T> provisionCallback) {
     super(source);
-    this.provisionCallback = checkNotNull(provisionCallback, "provisionCallback");
+    this.provisionCallback = provisionCallback;
     this.injector = injector;
     this.providerKey = providerKey;
   }
 
+  @Override
   public void notify(Errors errors) {
     try {
-      providerFactory = injector.getInternalFactory(providerKey, errors.withSource(source), JitLimitation.NEW_OR_EXISTING_JIT);
+      providerFactory =
+          injector.getInternalFactory(
+              providerKey, errors.withSource(source), JitLimitation.NEW_OR_EXISTING_JIT);
     } catch (ErrorsException e) {
       errors.merge(e.getErrors());
     }
   }
 
-  public T get(Errors errors, InternalContext context, Dependency<?> dependency, boolean linked)
-      throws ErrorsException {
-    context.pushState(providerKey, source);
+  @Override
+  public T get(InternalContext context, Dependency<?> dependency, boolean linked)
+      throws InternalProvisionException {
     try {
-      errors = errors.withSource(providerKey);
-      javax.inject.Provider<? extends T> provider = providerFactory.get(errors, context, dependency, true);
-      return circularGet(provider, errors, context, dependency, provisionCallback);
-    } finally {
-      context.popState();
+      javax.inject.Provider<? extends T> provider = providerFactory.get(context, dependency, true);
+      return circularGet(provider, context, dependency, provisionCallback);
+    } catch (InternalProvisionException ipe) {
+      throw ipe.addSource(providerKey);
     }
   }
-  
+
   @Override
-  protected T provision(Provider<? extends T> provider, Errors errors, Dependency<?> dependency,
-      ConstructionContext<T> constructionContext) throws ErrorsException {
+  protected T provision(
+      Provider<? extends T> provider,
+      Dependency<?> dependency,
+      ConstructionContext<T> constructionContext)
+      throws InternalProvisionException {
     try {
-      return super.provision(provider, errors, dependency, constructionContext);
-    } catch(RuntimeException userException) {
-      throw errors.errorInProvider(userException).toException();
-    } 
+      return super.provision(provider, dependency, constructionContext);
+    } catch (RuntimeException userException) {
+      throw InternalProvisionException.errorInProvider(userException);
+    }
   }
 
-  @Override public String toString() {
+  @Override
+  public String toString() {
     return providerKey.toString();
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,11 @@ package page.foliage.inject;
 
 import static page.foliage.guava.common.base.Preconditions.checkArgument;
 
-import page.foliage.guava.common.collect.ImmutableSet;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.spi.Message;
-
 import java.util.Collection;
+
+import page.foliage.guava.common.collect.ImmutableSet;
+import page.foliage.inject.internal.Messages;
+import page.foliage.inject.spi.Message;
 
 /**
  * Indicates that there was a runtime failure while providing an instance.
@@ -39,7 +39,7 @@ public final class ProvisionException extends RuntimeException {
   public ProvisionException(Iterable<Message> messages) {
     this.messages = ImmutableSet.copyOf(messages);
     checkArgument(!this.messages.isEmpty());
-    initCause(Errors.getOnlyCause(this.messages));
+    initCause(Messages.getOnlyCause(this.messages));
   }
 
   public ProvisionException(String message, Throwable cause) {
@@ -56,8 +56,9 @@ public final class ProvisionException extends RuntimeException {
     return messages;
   }
 
-  @Override public String getMessage() {
-    return Errors.format("Unable to provision, see the following errors", messages);
+  @Override
+  public String getMessage() {
+    return Messages.formatMessages("Unable to provision, see the following errors", messages);
   }
 
   private static final long serialVersionUID = 0;

@@ -19,9 +19,6 @@ package page.foliage.inject.internal;
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 import static page.foliage.guava.common.base.Preconditions.checkState;
 
-import page.foliage.inject.internal.AbstractProcessor;
-import page.foliage.inject.internal.Errors;
-
 import page.foliage.inject.Stage;
 import page.foliage.inject.internal.InjectorImpl.InjectorOptions;
 import page.foliage.inject.spi.DisableCircularProxiesOption;
@@ -56,11 +53,11 @@ class InjectorOptionsProcessor extends AbstractProcessor {
     jitDisabled = true;
     return true;
   }
-  
+
   @Override
   public Boolean visit(RequireAtInjectOnConstructorsOption option) {
     atInjectRequired = true;
-    return true;    
+    return true;
   }
 
   @Override
@@ -71,7 +68,7 @@ class InjectorOptionsProcessor extends AbstractProcessor {
 
   InjectorOptions getOptions(Stage stage, InjectorOptions parentOptions) {
     checkNotNull(stage, "stage must be set");
-    if(parentOptions == null) {
+    if (parentOptions == null) {
       return new InjectorOptions(
           stage,
           jitDisabled,
@@ -88,5 +85,4 @@ class InjectorOptionsProcessor extends AbstractProcessor {
           exactBindingAnnotationsRequired || parentOptions.exactBindingAnnotationsRequired);
     }
   }
-
 }

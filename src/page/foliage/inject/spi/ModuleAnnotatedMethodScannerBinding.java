@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2015 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,16 +18,12 @@ package page.foliage.inject.spi;
 
 import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.ModuleAnnotatedMethodScanner;
-
 import page.foliage.inject.Binder;
 import page.foliage.inject.internal.Errors;
 
 /**
  * Represents a call to {@link Binder#scanModulesForAnnotatedMethods} in a module.
- * 
+ *
  * @author sameb@google.com (Sam Berlin)
  * @since 4.0
  */
@@ -40,6 +36,7 @@ public final class ModuleAnnotatedMethodScannerBinding implements Element {
     this.scanner = checkNotNull(scanner, "scanner");
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
@@ -47,17 +44,24 @@ public final class ModuleAnnotatedMethodScannerBinding implements Element {
   public ModuleAnnotatedMethodScanner getScanner() {
     return scanner;
   }
-  
+
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public void applyTo(Binder binder) {
     binder.withSource(getSource()).scanModulesForAnnotatedMethods(scanner);
   }
 
-  @Override public String toString() {
-    return scanner + " which scans for " + scanner.annotationClasses()
-        + " (bound at " + Errors.convert(source) + ")";
+  @Override
+  public String toString() {
+    return scanner
+        + " which scans for "
+        + scanner.annotationClasses()
+        + " (bound at "
+        + Errors.convert(source)
+        + ")";
   }
 }

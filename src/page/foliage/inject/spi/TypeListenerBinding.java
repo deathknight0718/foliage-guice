@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2009 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
  */
 
 package page.foliage.inject.spi;
-
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.TypeListener;
 
 import page.foliage.inject.Binder;
 import page.foliage.inject.TypeLiteral;
@@ -40,8 +36,8 @@ public final class TypeListenerBinding implements Element {
   private final Matcher<? super TypeLiteral<?>> typeMatcher;
   private final TypeListener listener;
 
-  TypeListenerBinding(Object source, TypeListener listener,
-      Matcher<? super TypeLiteral<?>> typeMatcher) {
+  TypeListenerBinding(
+      Object source, TypeListener listener, Matcher<? super TypeLiteral<?>> typeMatcher) {
     this.source = source;
     this.listener = listener;
     this.typeMatcher = typeMatcher;
@@ -57,14 +53,17 @@ public final class TypeListenerBinding implements Element {
     return typeMatcher;
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
 
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public void applyTo(Binder binder) {
     binder.withSource(getSource()).bindListener(typeMatcher, listener);
   }

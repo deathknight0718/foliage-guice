@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,17 +20,15 @@ import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
 
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.InjectionPoint;
-
+import page.foliage.guava.common.base.Objects;
 import page.foliage.inject.Binder;
 import page.foliage.inject.ConfigurationException;
 
 /**
- * A request to inject the static fields and methods of a type. Requests are created
- * explicitly in a module using {@link page.foliage.inject.Binder#requestStaticInjection(Class[])
+ * A request to inject the static fields and methods of a type. Requests are created explicitly in a
+ * module using {@link page.foliage.inject.Binder#requestStaticInjection(Class[])
  * requestStaticInjection()} statements:
+ *
  * <pre>
  *     requestStaticInjection(MyLegacyService.class);</pre>
  *
@@ -46,6 +44,7 @@ public final class StaticInjectionRequest implements Element {
     this.type = checkNotNull(type, "type");
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
@@ -59,22 +58,36 @@ public final class StaticInjectionRequest implements Element {
    * request.
    *
    * @return a possibly empty set of injection points. The set has a specified iteration order. All
-   *      fields are returned and then all methods. Within the fields, supertype fields are returned
-   *      before subtype fields. Similarly, supertype methods are returned before subtype methods.
+   *     fields are returned and then all methods. Within the fields, supertype fields are returned
+   *     before subtype fields. Similarly, supertype methods are returned before subtype methods.
    * @throws ConfigurationException if there is a malformed injection point on {@code type}, such as
-   *      a field with multiple binding annotations. The exception's {@link
-   *      ConfigurationException#getPartialValue() partial value} is a {@code Set<InjectionPoint>}
-   *      of the valid injection points.
+   *     a field with multiple binding annotations. The exception's {@link
+   *     ConfigurationException#getPartialValue() partial value} is a {@code Set<InjectionPoint>} of
+   *     the valid injection points.
    */
   public Set<InjectionPoint> getInjectionPoints() throws ConfigurationException {
     return InjectionPoint.forStaticMethodsAndFields(type);
   }
 
+  @Override
   public void applyTo(Binder binder) {
     binder.withSource(getSource()).requestStaticInjection(type);
   }
 
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    return obj instanceof StaticInjectionRequest
+        && ((StaticInjectionRequest) obj).source.equals(source)
+        && ((StaticInjectionRequest) obj).type.equals(type);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(source, type);
   }
 }

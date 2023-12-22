@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,6 @@
  */
 
 package page.foliage.inject.spi;
-
-import page.foliage.inject.spi.HasDependencies;
 
 import page.foliage.inject.Provider;
 

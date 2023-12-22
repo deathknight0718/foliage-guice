@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2013 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,14 @@
 
 package page.foliage.inject.spi;
 
-import page.foliage.guava.common.base.Preconditions;
-import page.foliage.guava.common.collect.ImmutableList;
-import page.foliage.inject.Module;
-import page.foliage.inject.internal.util.StackTraceElements;
-import page.foliage.inject.internal.util.StackTraceElements.InMemoryStackTraceElement;
-
 import java.util.List;
 
+import javax.annotation.Nullable;
+
+import page.foliage.guava.common.base.Preconditions;
+import page.foliage.guava.common.collect.ImmutableList;
 import page.foliage.inject.Binder;
-import page.foliage.inject.spi.ModuleSource;
+import page.foliage.inject.Module;
 
 /**
  * Associated to a {@link Module module}, provides the module class name, the parent module {@link
@@ -34,50 +32,47 @@ import page.foliage.inject.spi.ModuleSource;
  */
 final class ModuleSource {
 
-  /**
-   * The class name of module that this {@link ModuleSource} associated to.
-   */
+  /** The class name of module that this {@link ModuleSource} associated to. */
   private final String moduleClassName;
 
-  /**
-   * The parent {@link ModuleSource module source}.
-   */
+  /** The parent {@link ModuleSource module source}. */
   private final ModuleSource parent;
 
   /**
-   * The chunk of call stack that starts from the parent module {@link Module#configure(Binder)
-   * configure(Binder)} call and ends just before the module {@link Module#configure(Binder)
-   * configure(Binder)} method invocation. For a module without a parent module the chunk starts
-   * from the bottom of call stack. The array is non-empty if stack trace collection is on.
+   * Permit map created by the binder that installed this module.
+   *
+   * <p>The permit map is a binder-scoped object, but it's saved here because these maps have to
+   * outlive the binders that created them in order to be used at injector creation, and there isn't
+   * a 'BinderSource' object.
    */
-  private final InMemoryStackTraceElement[] partialCallStack;
+  private final BindingSourceRestriction.PermitMap permitMap;
 
   /**
    * Creates a new {@link ModuleSource} with a {@literal null} parent.
-   * @param module the corresponding module
-   * @param partialCallStack the chunk of call stack that starts from the parent module {@link
-   * Module#configure(Binder) configure(Binder)} call and ends just before the module {@link
-   * Module#configure(Binder) configure(Binder)} method invocation
+   *
+   * @param moduleClass the corresponding module
    */
-  ModuleSource(Object module, StackTraceElement[] partialCallStack) {
-    this(null, module, partialCallStack);
+  ModuleSource(Class<?> moduleClass, BindingSourceRestriction.PermitMap permitMap) {
+    this(null, moduleClass, permitMap);
   }
 
- /**
+  /**
    * Creates a new {@link ModuleSource} Object.
+   *
    * @param parent the parent module {@link ModuleSource source}
-   * @param module the corresponding module
+   * @param moduleClass the corresponding module
    * @param partialCallStack the chunk of call stack that starts from the parent module {@link
-   * Module#configure(Binder) configure(Binder)} call and ends just before the module {@link
-   * Module#configure(Binder) configure(Binder)} method invocation
+   *     Module#configure(Binder) configure(Binder)} call and ends just before the module {@link
+   *     Module#configure(Binder) configure(Binder)} method invocation
    */
   private ModuleSource(
-      /* @Nullable */ ModuleSource parent, Object module, StackTraceElement[] partialCallStack) {
-    Preconditions.checkNotNull(module, "module cannot be null.");
-    Preconditions.checkNotNull(partialCallStack, "partialCallStack cannot be null.");
+      @Nullable ModuleSource parent,
+      Class<?> moduleClass,
+      BindingSourceRestriction.PermitMap permitMap) {
+    Preconditions.checkNotNull(moduleClass, "module cannot be null.");
     this.parent = parent;
-    this.moduleClassName = module.getClass().getName();
-    this.partialCallStack = StackTraceElements.convertToInMemoryStackTraceElement(partialCallStack);
+    this.moduleClassName = moduleClass.getName();
+    this.permitMap = permitMap;
   }
 
   /**
@@ -90,36 +85,15 @@ final class ModuleSource {
   }
 
   /**
-   * Returns the chunk of call stack that starts from the parent module {@link
-   * Module#configure(Binder) configure(Binder)} call and ends just before the module {@link
-   * Module#configure(Binder) configure(Binder)} method invocation. The return array is non-empty
-   * only if stack trace collection is on.
-   */
-  StackTraceElement[] getPartialCallStack() {
-    return StackTraceElements.convertToStackTraceElement(partialCallStack);
-  }
-
-  /**
-   * Returns the size of partial call stack if stack trace collection is on otherwise zero.
-   */
-  int getPartialCallStackSize() {
-    return partialCallStack.length;
-  }
-
-  /**
    * Creates and returns a child {@link ModuleSource} corresponding to the {@link Module module}.
-   * @param module the corresponding module
-   * @param partialCallStack the chunk of call stack that starts from the parent module {@link
-   * Module#configure(Binder) configure(Binder)} call and ends just before the module {@link
-   * Module#configure(Binder) configure(Binder)} method invocation
+   *
+   * @param moduleClass the corresponding module
    */
-  ModuleSource createChild(Object module, StackTraceElement[] partialCallStack) {
-    return new ModuleSource(this, module, partialCallStack);
+  ModuleSource createChild(Class<?> moduleClass) {
+    return new ModuleSource(this, moduleClass, permitMap);
   }
 
-  /**
-   * Returns the parent module {@link ModuleSource source}.
-   */
+  /** Returns the parent module {@link ModuleSource source}. */
   ModuleSource getParent() {
     return parent;
   }
@@ -151,35 +125,8 @@ final class ModuleSource {
     return parent.size() + 1;
   }
 
-  /**
-   * Returns the size of call stack that ends just before the module {@link Module#configure(Binder)
-   * configure(Binder)} method invocation (see {@link #getStackTrace()}).
-   */
-  int getStackTraceSize() {
-    if (parent == null) {
-      return partialCallStack.length;
-    }
-    return parent.getStackTraceSize() + partialCallStack.length;
-  }
-
-  /**
-   * Returns the full call stack that ends just before the module {@link Module#configure(Binder)
-   * configure(Binder)} method invocation. The return array is non-empty if stack trace collection
-   * on.
-   */
-  StackTraceElement[] getStackTrace() {
-    int stackTraceSize = getStackTraceSize();
-    StackTraceElement[] callStack = new StackTraceElement[stackTraceSize];
-    int cursor = 0;
-    ModuleSource current = this;
-    while (current != null) {
-      StackTraceElement[] chunk =
-          StackTraceElements.convertToStackTraceElement(current.partialCallStack);
-      int chunkSize = chunk.length;
-      System.arraycopy(chunk, 0, callStack, cursor, chunkSize);
-      current = current.parent;
-      cursor = cursor + chunkSize;
-    }
-    return callStack;
+  /** Returns the permit map created by the binder that installed this module. */
+  BindingSourceRestriction.PermitMap getPermitMap() {
+    return permitMap;
   }
 }

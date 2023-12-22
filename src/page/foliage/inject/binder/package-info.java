@@ -14,8 +14,5 @@
  * limitations under the License.
  */
 
-/**
- * Interfaces which make up {@link page.foliage.inject.Binder}'s
- * expression language.
- */
+/** Interfaces which make up {@link page.foliage.inject.Binder}'s expression language. */
 package page.foliage.inject.binder;

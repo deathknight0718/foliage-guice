@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,8 +21,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.function.BiFunction;
 
-import page.foliage.guava.common.base.Preconditions;
+import org.aopalliance.intercept.MethodInterceptor;
+
 import page.foliage.guava.common.collect.ImmutableMap;
 import page.foliage.inject.spi.InjectionPoint;
 
@@ -35,9 +37,7 @@ final class DefaultConstructionProxyFactory<T> implements ConstructionProxyFacto
 
   private final InjectionPoint injectionPoint;
 
-  /**
-   * @param injectionPoint an injection point whose member is a constructor of {@code T}.
-   */
+  /** @param injectionPoint an injection point whose member is a constructor of {@code T}. */
   DefaultConstructionProxyFactory(InjectionPoint injectionPoint) {
     this.injectionPoint = injectionPoint;
   }
@@ -47,46 +47,44 @@ final class DefaultConstructionProxyFactory<T> implements ConstructionProxyFacto
     @SuppressWarnings("unchecked") // the injection point is for a constructor of T
     final Constructor<T> constructor = (Constructor<T>) injectionPoint.getMember();
 
-    /*if[AOP]*/
-    try {
-      net.sf.cglib.reflect.FastClass fc =
-          BytecodeGen.newFastClassForMember(constructor);
-      if (fc != null) {
-        int index = fc.getIndex(constructor.getParameterTypes());
-        // We could just fall back to reflection in this case but I believe this should actually
-        // be impossible.
-        Preconditions.checkArgument(index >= 0,
-            "Could not find constructor %s in fast class",
-            constructor);
-        return new FastClassProxy<T>(injectionPoint, constructor, fc, index);
+    if (InternalFlags.isBytecodeGenEnabled()) {
+      try {
+        BiFunction<Object, Object[], Object> fastConstructor =
+            BytecodeGen.fastConstructor(constructor);
+        if (fastConstructor != null) {
+          return new FastClassProxy<T>(injectionPoint, constructor, fastConstructor);
+        }
+      } catch (Exception | LinkageError e) {
+        /* fall-through */
       }
-    } catch (net.sf.cglib.core.CodeGenerationException e) {/* fall-through */}
-    /*end[AOP]*/
+    }
 
     return new ReflectiveProxy<T>(injectionPoint, constructor);
   }
 
-  /*if[AOP]*/
-  /** A {@link ConstructionProxy} that uses FastClass to invoke the constructor. */
+  /** A {@link ConstructionProxy} that uses bytecode generation to invoke the constructor. */
   private static final class FastClassProxy<T> implements ConstructionProxy<T> {
     final InjectionPoint injectionPoint;
     final Constructor<T> constructor;
-    final net.sf.cglib.reflect.FastClass fc;
-    final int index;
+    final BiFunction<Object, Object[], Object> fastConstructor;
 
-    private FastClassProxy(InjectionPoint injectionPoint, Constructor<T> constructor,
-        net.sf.cglib.reflect.FastClass fc, int index) {
+    FastClassProxy(
+        InjectionPoint injectionPoint,
+        Constructor<T> constructor,
+        BiFunction<Object, Object[], Object> fastConstructor) {
       this.injectionPoint = injectionPoint;
       this.constructor = constructor;
-      this.fc = fc;
-      this.index = index;
+      this.fastConstructor = fastConstructor;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public T newInstance(Object... arguments) throws InvocationTargetException {
-      // Use this method instead of FastConstructor to save a stack frame
-      return (T) fc.newInstance(index, arguments);
+      try {
+        return (T) fastConstructor.apply(null, arguments);
+      } catch (Throwable e) {
+        throw new InvocationTargetException(e); // match JDK reflection behaviour
+      }
     }
 
     @Override
@@ -100,12 +98,10 @@ final class DefaultConstructionProxyFactory<T> implements ConstructionProxyFacto
     }
 
     @Override
-    public ImmutableMap<Method, List<org.aopalliance.intercept.MethodInterceptor>>
-        getMethodInterceptors() {
+    public ImmutableMap<Method, List<MethodInterceptor>> getMethodInterceptors() {
       return ImmutableMap.of();
     }
   }
-  /*end[AOP]*/
 
   private static final class ReflectiveProxy<T> implements ConstructionProxy<T> {
     final Constructor<T> constructor;
@@ -141,12 +137,9 @@ final class DefaultConstructionProxyFactory<T> implements ConstructionProxyFacto
       return constructor;
     }
 
-    /*if[AOP]*/
     @Override
-    public ImmutableMap<Method, List<org.aopalliance.intercept.MethodInterceptor>>
-        getMethodInterceptors() {
+    public ImmutableMap<Method, List<MethodInterceptor>> getMethodInterceptors() {
       return ImmutableMap.of();
     }
-    /*end[AOP]*/
   }
 }

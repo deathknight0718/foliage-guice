@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2010 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,17 +29,16 @@ import page.foliage.inject.Stage;
 /**
  * Instructs an {@link Injector} running in {@link Stage#TOOL} that a method should be injected.
  * This is typically useful for for extensions to Guice that perform additional validation in an
- * injected method or field.  This only applies to objects that are already constructed when
- * bindings are created (ie., something bound using {@link
+ * injected method or field. This only applies to objects that are already constructed when bindings
+ * are created (ie., something bound using {@link
  * page.foliage.inject.binder.LinkedBindingBuilder#toProvider toProvider}, {@link
  * page.foliage.inject.binder.LinkedBindingBuilder#toInstance toInstance}, or {@link
  * page.foliage.inject.Binder#requestInjection requestInjection}.
- * 
+ *
  * @author sberlin@gmail.com (Sam Berlin)
  * @since 3.0
  */
-@Target({ METHOD })
+@Target({METHOD})
 @Retention(RUNTIME)
 @Documented
-public @interface Toolable {
-}
+public @interface Toolable {}

@@ -1,5 +1,5 @@
-/**
- * Copyright (C) 2009 Google Inc.
+/*
+ * Copyright (C) 2020 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package page.foliage.inject.internal;
+package page.foliage.inject.internal.aop;
 
-/**
- * @author jessewilson@google.com (Jesse Wilson)
- */
-public interface CircularDependencyProxy {
-  // marker interface
+/** Defines dynamically generated classes. */
+interface ClassDefiner {
+
+  /** Defines a new class relative to the host. */
+  Class<?> define(Class<?> hostClass, byte[] bytecode) throws Exception;
 }

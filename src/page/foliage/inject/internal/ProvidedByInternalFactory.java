@@ -14,23 +14,9 @@
  * limitations under the License.
  */
 
-
 package page.foliage.inject.internal;
 
-import static page.foliage.guava.common.base.Preconditions.checkState;
-
 import javax.inject.Provider;
-
-import page.foliage.inject.internal.BindingImpl;
-import page.foliage.inject.internal.ConstructionContext;
-import page.foliage.inject.internal.DelayedInitialize;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-import page.foliage.inject.internal.InjectorImpl;
-import page.foliage.inject.internal.InternalContext;
-import page.foliage.inject.internal.InternalFactory;
-import page.foliage.inject.internal.ProviderInternalFactory;
-import page.foliage.inject.internal.ProvisionListenerStackCallback;
 
 import page.foliage.inject.Key;
 import page.foliage.inject.ProvidedBy;
@@ -39,66 +25,70 @@ import page.foliage.inject.spi.Dependency;
 
 /**
  * An {@link InternalFactory} for {@literal @}{@link ProvidedBy} bindings.
- * 
+ *
  * @author sameb@google.com (Sam Berlin)
  */
-class ProvidedByInternalFactory<T> extends ProviderInternalFactory<T>
-    implements DelayedInitialize {
-  
+class ProvidedByInternalFactory<T> extends ProviderInternalFactory<T> implements DelayedInitialize {
+
   private final Class<?> rawType;
   private final Class<? extends Provider<?>> providerType;
   private final Key<? extends Provider<T>> providerKey;
   private BindingImpl<? extends Provider<T>> providerBinding;
   private ProvisionListenerStackCallback<T> provisionCallback;
-  
+
   ProvidedByInternalFactory(
       Class<?> rawType,
       Class<? extends Provider<?>> providerType,
       Key<? extends Provider<T>> providerKey) {
     super(providerKey);
     this.rawType = rawType;
-    this.providerType = providerType; 
+    this.providerType = providerType;
     this.providerKey = providerKey;
   }
-  
+
   void setProvisionListenerCallback(ProvisionListenerStackCallback<T> listener) {
     provisionCallback = listener;
   }
-  
+
+  @Override
   public void initialize(InjectorImpl injector, Errors errors) throws ErrorsException {
     providerBinding =
         injector.getBindingOrThrow(providerKey, errors, JitLimitation.NEW_OR_EXISTING_JIT);
   }
 
-  public T get(Errors errors, InternalContext context, Dependency dependency, boolean linked)
-      throws ErrorsException {
-    checkState(providerBinding != null, "not initialized");
-    
-    context.pushState(providerKey, providerBinding.getSource());
+  @Override
+  public T get(InternalContext context, Dependency<?> dependency, boolean linked)
+      throws InternalProvisionException {
+    BindingImpl<? extends Provider<T>> localProviderBinding = providerBinding;
+    if (localProviderBinding == null) {
+      throw new IllegalStateException("not initialized");
+    }
+    Key<? extends Provider<T>> localProviderKey = providerKey;
     try {
-      errors = errors.withSource(providerKey);
-      Provider<? extends T> provider = providerBinding.getInternalFactory().get(
-          errors, context, dependency, true);
-      return circularGet(provider, errors, context, dependency, provisionCallback);
-    } finally {
-      context.popState();
+      Provider<? extends T> provider =
+          localProviderBinding.getInternalFactory().get(context, dependency, true);
+      return circularGet(provider, context, dependency, provisionCallback);
+    } catch (InternalProvisionException ipe) {
+      throw ipe.addSource(localProviderKey);
     }
   }
-  
+
   @Override
-  protected T provision(javax.inject.Provider<? extends T> provider, Errors errors,
-      Dependency<?> dependency, ConstructionContext<T> constructionContext)
-      throws ErrorsException {
+  protected T provision(
+      javax.inject.Provider<? extends T> provider,
+      Dependency<?> dependency,
+      ConstructionContext<T> constructionContext)
+      throws InternalProvisionException {
     try {
-      Object o = super.provision(provider, errors, dependency, constructionContext);
+      Object o = super.provision(provider, dependency, constructionContext);
       if (o != null && !rawType.isInstance(o)) {
-        throw errors.subtypeNotProvided(providerType, rawType).toException();
+        throw InternalProvisionException.subtypeNotProvided(providerType, rawType);
       }
       @SuppressWarnings("unchecked") // protected by isInstance() check above
       T t = (T) o;
       return t;
     } catch (RuntimeException e) {
-      throw errors.errorInProvider(e).toException();
+      throw InternalProvisionException.errorInProvider(e).addSource(source);
     }
   }
 }

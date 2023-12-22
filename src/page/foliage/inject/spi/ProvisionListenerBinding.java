@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2011 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,16 +16,12 @@
 
 package page.foliage.inject.spi;
 
+import java.util.List;
+
 import page.foliage.guava.common.collect.ImmutableList;
 import page.foliage.inject.Binder;
 import page.foliage.inject.Binding;
 import page.foliage.inject.matcher.Matcher;
-
-import java.util.List;
-
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.ProvisionListener;
 
 /**
  * Binds keys (picked using a Matcher) to a provision listener. Listeners are created explicitly in
@@ -40,9 +36,8 @@ public final class ProvisionListenerBinding implements Element {
   private final Matcher<? super Binding<?>> bindingMatcher;
   private final List<ProvisionListener> listeners;
 
-  ProvisionListenerBinding(Object source,
-      Matcher<? super Binding<?>> bindingMatcher,
-      ProvisionListener[] listeners) {
+  ProvisionListenerBinding(
+      Object source, Matcher<? super Binding<?>> bindingMatcher, ProvisionListener[] listeners) {
     this.source = source;
     this.bindingMatcher = bindingMatcher;
     this.listeners = ImmutableList.copyOf(listeners);
@@ -55,21 +50,25 @@ public final class ProvisionListenerBinding implements Element {
 
   /**
    * Returns the binding matcher which chooses which bindings the listener should be notified of.
-   */  
+   */
   public Matcher<? super Binding<?>> getBindingMatcher() {
     return bindingMatcher;
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
 
+  @Override
   public <R> R acceptVisitor(ElementVisitor<R> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public void applyTo(Binder binder) {
-    binder.withSource(getSource()).bindListener(bindingMatcher,
-        listeners.toArray(new ProvisionListener[listeners.size()]));
+    binder
+        .withSource(getSource())
+        .bindListener(bindingMatcher, listeners.toArray(new ProvisionListener[listeners.size()]));
   }
 }

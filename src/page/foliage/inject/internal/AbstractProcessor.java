@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +16,6 @@
 
 package page.foliage.inject.internal;
 
-import java.util.Iterator;
 import java.util.List;
 
 import page.foliage.inject.spi.DefaultElementVisitor;
@@ -25,9 +24,8 @@ import page.foliage.inject.spi.Element;
 /**
  * Abstract base class for creating an injector from module elements.
  *
- * <p>Extending classes must return {@code true} from any overridden
- * {@code visit*()} methods, in order for the element processor to remove the
- * handled element.
+ * <p>Extending classes must return {@code true} from any overridden {@code visit*()} methods, in
+ * order for the element processor to remove the handled element.
  *
  * @author jessewilson@google.com (Jesse Wilson)
  */
@@ -50,20 +48,17 @@ abstract class AbstractProcessor extends DefaultElementVisitor<Boolean> {
     Errors errorsAnyElement = this.errors;
     this.injector = injector;
     try {
-      for (Iterator<Element> i = elements.iterator(); i.hasNext(); ) {
-        Element element = i.next();
-        this.errors = errorsAnyElement.withSource(element.getSource());
-        Boolean allDone = element.acceptVisitor(this);
-        if (allDone) {
-          i.remove();
-        }
-      }
+      elements.removeIf(
+          e -> {
+            this.errors = errorsAnyElement.withSource(e.getSource());
+            return e.acceptVisitor(this);
+          });
     } finally {
       this.errors = errorsAnyElement;
       this.injector = null;
     }
   }
-  
+
   @Override
   protected Boolean visitOther(Element element) {
     return false;

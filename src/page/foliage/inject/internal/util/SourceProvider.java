@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +16,15 @@
 
 package page.foliage.inject.internal.util;
 
+import java.util.List;
+
 import page.foliage.guava.common.base.Preconditions;
 import page.foliage.guava.common.collect.ImmutableSet;
 import page.foliage.guava.common.collect.Lists;
 
-import java.util.List;
-
-import page.foliage.inject.internal.util.SourceProvider;
-
 /**
  * Provides access to the calling line of code.
- * 
+ *
  * @author crazybob@google.com (Bob Lee)
  */
 public final class SourceProvider {
@@ -36,9 +34,9 @@ public final class SourceProvider {
 
   private final SourceProvider parent;
   private final ImmutableSet<String> classNamesToSkip;
-  
-  public static final SourceProvider DEFAULT_INSTANCE
-      = new SourceProvider(ImmutableSet.of(SourceProvider.class.getName()));
+
+  public static final SourceProvider DEFAULT_INSTANCE =
+      new SourceProvider(ImmutableSet.of(SourceProvider.class.getName()));
 
   private SourceProvider(Iterable<String> classesToSkip) {
     this(null, classesToSkip);
@@ -46,7 +44,7 @@ public final class SourceProvider {
 
   private SourceProvider(SourceProvider parent, Iterable<String> classesToSkip) {
     this.parent = parent;
-    
+
     ImmutableSet.Builder<String> classNamesToSkipBuilder = ImmutableSet.builder();
     for (String classToSkip : classesToSkip) {
       if (parent == null || !parent.shouldBeSkipped(classToSkip)) {
@@ -57,7 +55,7 @@ public final class SourceProvider {
   }
 
   /** Returns a new instance that also skips {@code moreClassesToSkip}. */
-  public SourceProvider plusSkippedClasses(Class... moreClassesToSkip) {
+  public SourceProvider plusSkippedClasses(Class<?>... moreClassesToSkip) {
     return new SourceProvider(this, asStrings(moreClassesToSkip));
   }
 
@@ -66,11 +64,11 @@ public final class SourceProvider {
     return (parent != null && parent.shouldBeSkipped(className))
         || classNamesToSkip.contains(className);
   }
-  
+
   /** Returns the class names as Strings */
-  private static List<String> asStrings(Class... classes) {
+  private static List<String> asStrings(Class<?>... classes) {
     List<String> strings = Lists.newArrayList();
-    for (Class c : classes) {
+    for (Class<?> c : classes) {
       strings.add(c.getName());
     }
     return strings;
@@ -84,7 +82,7 @@ public final class SourceProvider {
     Preconditions.checkNotNull(stackTraceElements, "The stack trace elements cannot be null.");
     for (final StackTraceElement element : stackTraceElements) {
       String className = element.getClassName();
-      
+
       if (!shouldBeSkipped(className)) {
         return element;
       }
@@ -92,9 +90,7 @@ public final class SourceProvider {
     throw new AssertionError();
   }
 
-  /**
-   * Returns the non-skipped module class name.
-   */
+  /** Returns the non-skipped module class name. */
   public Object getFromClassNames(List<String> moduleClassNames) {
     Preconditions.checkNotNull(moduleClassNames, "The list of module class names cannot be null.");
     for (final String moduleClassName : moduleClassNames) {

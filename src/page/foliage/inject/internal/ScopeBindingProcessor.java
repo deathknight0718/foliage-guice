@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,10 +20,6 @@ import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
 import java.lang.annotation.Annotation;
 
-import page.foliage.inject.internal.AbstractProcessor;
-import page.foliage.inject.internal.Annotations;
-import page.foliage.inject.internal.Errors;
-
 import page.foliage.inject.Scope;
 import page.foliage.inject.spi.ScopeBinding;
 
@@ -39,9 +35,11 @@ final class ScopeBindingProcessor extends AbstractProcessor {
     super(errors);
   }
 
-  @Override public Boolean visit(ScopeBinding command) {
+  @Override
+  public Boolean visit(ScopeBinding command) {
     Scope scope = checkNotNull(command.getScope(), "scope");
-    Class<? extends Annotation> annotationType = checkNotNull(command.getAnnotationType(), "annotation type");
+    Class<? extends Annotation> annotationType =
+        checkNotNull(command.getAnnotationType(), "annotation type");
 
     if (!Annotations.isScopeAnnotation(annotationType)) {
       errors.missingScopeAnnotation(annotationType);
@@ -53,13 +51,13 @@ final class ScopeBindingProcessor extends AbstractProcessor {
       // Go ahead and bind anyway so we don't get collateral errors.
     }
 
-    ScopeBinding existing = injector.state.getScopeBinding(annotationType);
+    ScopeBinding existing = injector.getBindingData().getScopeBinding(annotationType);
     if (existing != null) {
       if (!scope.equals(existing.getScope())) {
         errors.duplicateScopes(existing, annotationType, scope);
       }
     } else {
-      injector.state.putScopeBinding(annotationType, command);
+      injector.getBindingData().putScopeBinding(annotationType, command);
     }
 
     return true;

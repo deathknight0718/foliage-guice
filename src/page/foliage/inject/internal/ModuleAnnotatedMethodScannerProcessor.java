@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2015 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.AbstractProcessor;
-import page.foliage.inject.internal.Errors;
-
 import page.foliage.inject.spi.ModuleAnnotatedMethodScannerBinding;
 
 /**
@@ -32,8 +29,9 @@ final class ModuleAnnotatedMethodScannerProcessor extends AbstractProcessor {
     super(errors);
   }
 
-  @Override public Boolean visit(ModuleAnnotatedMethodScannerBinding command) {
-    injector.state.addScanner(command);
+  @Override
+  public Boolean visit(ModuleAnnotatedMethodScannerBinding command) {
+    injector.getBindingData().addScanner(command);
     return true;
   }
 }

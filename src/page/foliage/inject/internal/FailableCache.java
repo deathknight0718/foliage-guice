@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,13 +16,13 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-import page.foliage.inject.internal.FailableCache;
+import java.util.Map;
 
 import page.foliage.guava.common.cache.CacheBuilder;
 import page.foliage.guava.common.cache.CacheLoader;
 import page.foliage.guava.common.cache.LoadingCache;
+import page.foliage.guava.common.collect.ImmutableMap;
+import page.foliage.guava.common.collect.Maps;
 
 /**
  * Lazily creates (and caches) values for keys. If creating the value fails (with errors), an
@@ -31,23 +31,26 @@ import page.foliage.guava.common.cache.LoadingCache;
  * @author jessewilson@google.com (Jesse Wilson)
  */
 public abstract class FailableCache<K, V> {
-  
-  private final LoadingCache<K, Object> delegate = CacheBuilder.newBuilder().build(
-      new CacheLoader<K, Object>() {
-        public Object load(K key) {
-          Errors errors = new Errors();
-          V result = null;
-          try {
-            result = FailableCache.this.create(key, errors);
-          } catch (ErrorsException e) {
-            errors.merge(e.getErrors());
-          }
-          return errors.hasErrors() ? errors : result;
-        }
-      });
+
+  private final LoadingCache<K, Object> delegate =
+      CacheBuilder.newBuilder()
+          .build(
+              new CacheLoader<K, Object>() {
+                @Override
+                public Object load(K key) {
+                  Errors errors = new Errors();
+                  V result = null;
+                  try {
+                    result = FailableCache.this.create(key, errors);
+                  } catch (ErrorsException e) {
+                    errors.merge(e.getErrors());
+                  }
+                  return errors.hasErrors() ? errors : result;
+                }
+              });
 
   protected abstract V create(K key, Errors errors) throws ErrorsException;
-  
+
   public V get(K key, Errors errors) throws ErrorsException {
     Object resultOrError = delegate.getUnchecked(key);
     if (resultOrError instanceof Errors) {
@@ -59,8 +62,20 @@ public abstract class FailableCache<K, V> {
       return result;
     }
   }
-  
+
   boolean remove(K key) {
     return delegate.asMap().remove(key) != null;
+  }
+
+  Map<K, V> asMap() {
+    return Maps.transformValues(
+        Maps.filterValues(
+            ImmutableMap.copyOf(delegate.asMap()),
+            resultOrError -> !(resultOrError instanceof Errors)),
+        resultOrError -> {
+          @SuppressWarnings("unchecked") // create returned a non-error result, so this is safe
+          V result = (V) resultOrError;
+          return result;
+        });
   }
 }

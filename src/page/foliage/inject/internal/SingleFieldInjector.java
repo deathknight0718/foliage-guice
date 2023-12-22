@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,20 +18,11 @@ package page.foliage.inject.internal;
 
 import java.lang.reflect.Field;
 
-import page.foliage.inject.internal.BindingImpl;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-import page.foliage.inject.internal.InjectorImpl;
-import page.foliage.inject.internal.InternalContext;
-import page.foliage.inject.internal.SingleMemberInjector;
-
 import page.foliage.inject.internal.InjectorImpl.JitLimitation;
 import page.foliage.inject.spi.Dependency;
 import page.foliage.inject.spi.InjectionPoint;
 
-/**
- * Sets an injectable field.
- */
+/** Sets an injectable field. */
 final class SingleFieldInjector implements SingleMemberInjector {
   final Field field;
   final InjectionPoint injectionPoint;
@@ -49,23 +40,20 @@ final class SingleFieldInjector implements SingleMemberInjector {
     binding = injector.getBindingOrThrow(dependency.getKey(), errors, JitLimitation.NO_JIT);
   }
 
+  @Override
   public InjectionPoint getInjectionPoint() {
     return injectionPoint;
   }
 
-  public void inject(Errors errors, InternalContext context, Object o) {
-    errors = errors.withSource(dependency);
-
-    Dependency previous = context.pushDependency(dependency, binding.getSource());
+  @Override
+  public void inject(InternalContext context, Object o) throws InternalProvisionException {
     try {
-      Object value = binding.getInternalFactory().get(errors, context, dependency, false);
+      Object value = binding.getInternalFactory().get(context, dependency, false);
       field.set(o, value);
-    } catch (ErrorsException e) {
-      errors.withSource(injectionPoint).merge(e.getErrors());
+    } catch (InternalProvisionException e) {
+      throw e.addSource(dependency);
     } catch (IllegalAccessException e) {
       throw new AssertionError(e); // a security manager is blocking us, we're hosed
-    } finally {
-      context.popStateAndSetDependency(previous);
     }
   }
 }

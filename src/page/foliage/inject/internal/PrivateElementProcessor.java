@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,14 +16,10 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.guava.common.collect.Lists;
-import page.foliage.inject.spi.PrivateElements;
-
 import java.util.List;
 
-import page.foliage.inject.internal.AbstractProcessor;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.InjectorShell;
+import page.foliage.guava.common.collect.Lists;
+import page.foliage.inject.spi.PrivateElements;
 
 /**
  * Handles {@code Binder.newPrivateBinder()} elements.
@@ -38,10 +34,10 @@ final class PrivateElementProcessor extends AbstractProcessor {
     super(errors);
   }
 
-  @Override public Boolean visit(PrivateElements privateElements) {
-    InjectorShell.Builder builder = new InjectorShell.Builder()
-        .parent(injector)
-        .privateElements(privateElements);
+  @Override
+  public Boolean visit(PrivateElements privateElements) {
+    InjectorShell.Builder builder =
+        new InjectorShell.Builder().parent(injector).privateElements(privateElements);
     injectorShellBuilders.add(builder);
     return true;
   }

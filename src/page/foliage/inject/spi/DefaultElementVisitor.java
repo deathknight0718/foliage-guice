@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,112 +16,105 @@
 
 package page.foliage.inject.spi;
 
-import page.foliage.inject.spi.DisableCircularProxiesOption;
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.InjectionRequest;
-import page.foliage.inject.spi.InterceptorBinding;
-import page.foliage.inject.spi.MembersInjectorLookup;
-import page.foliage.inject.spi.Message;
-import page.foliage.inject.spi.ModuleAnnotatedMethodScannerBinding;
-import page.foliage.inject.spi.PrivateElements;
-import page.foliage.inject.spi.ProviderLookup;
-import page.foliage.inject.spi.ProvisionListenerBinding;
-import page.foliage.inject.spi.RequireAtInjectOnConstructorsOption;
-import page.foliage.inject.spi.RequireExactBindingAnnotationsOption;
-import page.foliage.inject.spi.RequireExplicitBindingsOption;
-import page.foliage.inject.spi.ScopeBinding;
-import page.foliage.inject.spi.StaticInjectionRequest;
-import page.foliage.inject.spi.TypeConverterBinding;
-import page.foliage.inject.spi.TypeListenerBinding;
-
 import page.foliage.inject.Binding;
 
 /**
- * No-op visitor for subclassing. All interface methods simply delegate to
- * {@link #visitOther(Element)}, returning its result.
+ * No-op visitor for subclassing. All interface methods simply delegate to {@link
+ * #visitOther(Element)}, returning its result.
  *
- * @param <V> any type to be returned by the visit method. Use {@link Void} with
- *     {@code return null} if no return type is needed.
- *
+ * @param <V> any type to be returned by the visit method. Use {@link Void} with {@code return null}
+ *     if no return type is needed.
  * @author sberlin@gmail.com (Sam Berlin)
  * @since 2.0
  */
 public abstract class DefaultElementVisitor<V> implements ElementVisitor<V> {
 
-  /**
-   * Default visit implementation. Returns {@code null}.
-   */
+  /** Default visit implementation. Returns {@code null}. */
   protected V visitOther(Element element) {
     return null;
   }
 
+  @Override
   public V visit(Message message) {
     return visitOther(message);
   }
 
+  @Override
   public <T> V visit(Binding<T> binding) {
     return visitOther(binding);
   }
 
-  /*if[AOP]*/
+  @Override
   public V visit(InterceptorBinding interceptorBinding) {
     return visitOther(interceptorBinding);
   }
-  /*end[AOP]*/
 
+  @Override
   public V visit(ScopeBinding scopeBinding) {
     return visitOther(scopeBinding);
   }
 
+  @Override
   public V visit(TypeConverterBinding typeConverterBinding) {
     return visitOther(typeConverterBinding);
   }
 
+  @Override
   public <T> V visit(ProviderLookup<T> providerLookup) {
     return visitOther(providerLookup);
   }
 
+  @Override
   public V visit(InjectionRequest<?> injectionRequest) {
     return visitOther(injectionRequest);
   }
 
+  @Override
   public V visit(StaticInjectionRequest staticInjectionRequest) {
     return visitOther(staticInjectionRequest);
   }
 
+  @Override
   public V visit(PrivateElements privateElements) {
     return visitOther(privateElements);
   }
 
+  @Override
   public <T> V visit(MembersInjectorLookup<T> lookup) {
     return visitOther(lookup);
   }
 
+  @Override
   public V visit(TypeListenerBinding binding) {
     return visitOther(binding);
   }
-  
+
+  @Override
   public V visit(ProvisionListenerBinding binding) {
     return visitOther(binding);
   }
-  
+
+  @Override
   public V visit(DisableCircularProxiesOption option) {
     return visitOther(option);
   }
-  
+
+  @Override
   public V visit(RequireExplicitBindingsOption option) {
     return visitOther(option);
   }
-  
+
+  @Override
   public V visit(RequireAtInjectOnConstructorsOption option) {
     return visitOther(option);
   }
 
+  @Override
   public V visit(RequireExactBindingAnnotationsOption option) {
     return visitOther(option);
   }
 
+  @Override
   public V visit(ModuleAnnotatedMethodScannerBinding binding) {
     return visitOther(binding);
   }

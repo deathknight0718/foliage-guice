@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,9 +16,6 @@
 
 package page.foliage.inject.spi;
 
-import page.foliage.inject.spi.HasDependencies;
-import page.foliage.inject.spi.PrivateElements;
-
 import page.foliage.inject.Binder;
 import page.foliage.inject.Binding;
 
@@ -30,13 +27,10 @@ import page.foliage.inject.Binding;
  */
 public interface ExposedBinding<T> extends Binding<T>, HasDependencies {
 
-  /**
-   * Returns the enclosed environment that holds the original binding.
-   */
+  /** Returns the enclosed environment that holds the original binding. */
   PrivateElements getPrivateElements();
 
-  /**
-   * Unsupported. Always throws {@link UnsupportedOperationException}.
-   */
+  /** Unsupported. Always throws {@link UnsupportedOperationException}. */
+  @Override
   void applyTo(Binder binder);
 }

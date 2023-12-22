@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +16,14 @@
 
 package page.foliage.inject.internal;
 
-import page.foliage.guava.common.collect.ImmutableList;
-import page.foliage.guava.common.collect.Iterables;
+import java.lang.annotation.Annotation;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import page.foliage.guava.common.base.Stopwatch;
 import page.foliage.inject.Binding;
 import page.foliage.inject.Injector;
 import page.foliage.inject.Key;
@@ -27,30 +33,11 @@ import page.foliage.inject.Provider;
 import page.foliage.inject.Scope;
 import page.foliage.inject.Stage;
 import page.foliage.inject.TypeLiteral;
-import page.foliage.inject.internal.util.Stopwatch;
+import page.foliage.inject.internal.util.ContinuousStopwatch;
 import page.foliage.inject.spi.Dependency;
+import page.foliage.inject.spi.Element;
+import page.foliage.inject.spi.InjectionPoint;
 import page.foliage.inject.spi.TypeConverterBinding;
-
-import java.lang.annotation.Annotation;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import page.foliage.inject.internal.BindingImpl;
-import page.foliage.inject.internal.ContextualCallable;
-import page.foliage.inject.internal.DeferredLookups;
-import page.foliage.inject.internal.Errors;
-import page.foliage.inject.internal.ErrorsException;
-import page.foliage.inject.internal.Initializer;
-import page.foliage.inject.internal.InjectionRequestProcessor;
-import page.foliage.inject.internal.InjectorImpl;
-import page.foliage.inject.internal.InjectorShell;
-import page.foliage.inject.internal.InternalContext;
-import page.foliage.inject.internal.InternalInjectorCreator;
-import page.foliage.inject.internal.LinkedBindingImpl;
-import page.foliage.inject.internal.LookupProcessor;
-import page.foliage.inject.internal.ProcessedBindingData;
 
 /**
  * Builds a tree of injectors. This is a primary injector, plus child injectors needed for each
@@ -58,14 +45,15 @@ import page.foliage.inject.internal.ProcessedBindingData;
  * top-level injector.
  *
  * <p>Injector construction happens in two phases.
+ *
  * <ol>
- *   <li>Static building. In this phase, we interpret commands, create bindings, and inspect 
- *     dependencies. During this phase, we hold a lock to ensure consistency with parent injectors.
- *     No user code is executed in this phase.</li>
+ *   <li>Static building. In this phase, we interpret commands, create bindings, and inspect
+ *       dependencies. During this phase, we hold a lock to ensure consistency with parent
+ *       injectors. No user code is executed in this phase.
  *   <li>Dynamic injection. In this phase, we call user code. We inject members that requested
- *     injection. This may require user's objects be created and their providers be called. And we
- *     create eager singletons. In this phase, user code may have started other threads. This phase
- *     is not executed for injectors created using {@link Stage#TOOL the tool stage}</li>
+ *       injection. This may require user's objects be created and their providers be called. And we
+ *       create eager singletons. In this phase, user code may have started other threads. This
+ *       phase is not executed for injectors created using {@link Stage#TOOL the tool stage}
  * </ol>
  *
  * @author crazybob@google.com (Bob Lee)
@@ -73,21 +61,22 @@ import page.foliage.inject.internal.ProcessedBindingData;
  */
 public final class InternalInjectorCreator {
 
-  private final Stopwatch stopwatch = new Stopwatch();
+  private final ContinuousStopwatch stopwatch =
+      new ContinuousStopwatch(Stopwatch.createUnstarted());
   private final Errors errors = new Errors();
 
   private final Initializer initializer = new Initializer();
-  private final ProcessedBindingData bindingData;
+  private final ProcessedBindingData processedBindingData;
   private final InjectionRequestProcessor injectionRequestProcessor;
 
   private final InjectorShell.Builder shellBuilder = new InjectorShell.Builder();
   private List<InjectorShell> shells;
-  
+
   public InternalInjectorCreator() {
     injectionRequestProcessor = new InjectionRequestProcessor(errors, initializer);
-    bindingData = new ProcessedBindingData();
+    processedBindingData = new ProcessedBindingData();
   }
-  
+
   public InternalInjectorCreator stage(Stage stage) {
     shellBuilder.stage(stage);
     return this;
@@ -113,10 +102,10 @@ public final class InternalInjectorCreator {
       throw new AssertionError("Already built, builders are not reusable.");
     }
 
-    // Synchronize while we're building up the bindings and other injector state. This ensures that
+    // Synchronize while we're building up the bindings and other injector data. This ensures that
     // the JIT bindings in the parent injector don't change while we're being built
     synchronized (shellBuilder.lock()) {
-      shells = shellBuilder.build(initializer, bindingData, stopwatch, errors);
+      shells = shellBuilder.build(initializer, processedBindingData, stopwatch, errors);
       stopwatch.resetAndLog("Injector construction");
 
       initializeStatically();
@@ -135,18 +124,18 @@ public final class InternalInjectorCreator {
 
   /** Initialize and validate everything. */
   private void initializeStatically() {
-    bindingData.initializeBindings();
+    processedBindingData.initializeBindings();
     stopwatch.resetAndLog("Binding initialization");
 
     for (InjectorShell shell : shells) {
-      shell.getInjector().index();
+      shell.getInjector().getBindingData().indexBindingsByType();
     }
     stopwatch.resetAndLog("Binding indexing");
 
     injectionRequestProcessor.process(shells);
     stopwatch.resetAndLog("Collecting injection requests");
 
-    bindingData.runCreationListeners(errors);
+    processedBindingData.runCreationListeners(errors);
     stopwatch.resetAndLog("Binding validation");
 
     injectionRequestProcessor.validate();
@@ -161,6 +150,11 @@ public final class InternalInjectorCreator {
     }
     stopwatch.resetAndLog("Provider verification");
 
+    // This needs to come late since some user bindings rely on requireBinding calls to create
+    // jit bindings during the LookupProcessor.
+    processedBindingData.initializeDelayedBindings();
+    stopwatch.resetAndLog("Delayed Binding initialization");
+
     for (InjectorShell shell : shells) {
       if (!shell.getElements().isEmpty()) {
         throw new AssertionError("Failed to execute " + shell.getElements());
@@ -170,9 +164,7 @@ public final class InternalInjectorCreator {
     errors.throwCreationExceptionIfErrorsExist();
   }
 
-  /**
-   * Returns the injector being constructed. This is not necessarily the root injector.
-   */
+  /** Returns the injector being constructed. This is not necessarily the root injector. */
   private Injector primaryInjector() {
     return shells.get(0).getInjector();
   }
@@ -190,7 +182,7 @@ public final class InternalInjectorCreator {
     stopwatch.resetAndLog("Instance injection");
     errors.throwCreationExceptionIfErrorsExist();
 
-    if(shellBuilder.getStage() != Stage.TOOL) {
+    if (shellBuilder.getStage() != Stage.TOOL) {
       for (InjectorShell shell : shells) {
         loadEagerSingletons(shell.getInjector(), shellBuilder.getStage(), errors);
       }
@@ -204,33 +196,29 @@ public final class InternalInjectorCreator {
    * while we're binding these singletons are not be eager.
    */
   void loadEagerSingletons(InjectorImpl injector, Stage stage, final Errors errors) {
+    List<BindingImpl<?>> candidateBindings = new ArrayList<>();
     @SuppressWarnings("unchecked") // casting Collection<Binding> to Collection<BindingImpl> is safe
-    Iterable<BindingImpl<?>> candidateBindings = ImmutableList.copyOf(Iterables.concat(
-        (Collection) injector.state.getExplicitBindingsThisLevel().values(),
-        injector.jitBindings.values()));
-    for (final BindingImpl<?> binding : candidateBindings) {
-      if (isEagerSingleton(injector, binding, stage)) {
-        try {
-          injector.callInContext(new ContextualCallable<Void>() {
-            Dependency<?> dependency = Dependency.get(binding.getKey());
-            public Void call(InternalContext context) {
-              Dependency previous = context.pushDependency(dependency, binding.getSource());
-              Errors errorsForBinding = errors.withSource(dependency);
-              try {
-                binding.getInternalFactory().get(errorsForBinding, context, dependency, false);
-              } catch (ErrorsException e) {
-                errorsForBinding.merge(e.getErrors());
-              } finally {
-                context.popStateAndSetDependency(previous);
-              }
-
-              return null;
-            }
-          });
-        } catch (ErrorsException e) {
-          throw new AssertionError();
+    Collection<BindingImpl<?>> bindingsAtThisLevel =
+        (Collection) injector.getBindingData().getExplicitBindingsThisLevel().values();
+    candidateBindings.addAll(bindingsAtThisLevel);
+    synchronized (injector.getJitBindingData().lock()) {
+      // jit bindings must be accessed while holding the lock.
+      candidateBindings.addAll(injector.getJitBindingData().getJitBindings().values());
+    }
+    InternalContext context = injector.enterContext();
+    try {
+      for (BindingImpl<?> binding : candidateBindings) {
+        if (isEagerSingleton(injector, binding, stage)) {
+          Dependency<?> dependency = Dependency.get(binding.getKey());
+          try {
+            binding.getInternalFactory().get(context, dependency, false);
+          } catch (InternalProvisionException e) {
+            errors.withSource(dependency).merge(e);
+          }
         }
       }
+    } finally {
+      context.close();
     }
   }
 
@@ -241,10 +229,11 @@ public final class InternalInjectorCreator {
 
     // handle a corner case where a child injector links to a binding in a parent injector, and
     // that binding is singleton. We won't catch this otherwise because we only iterate the child's
-    // bindings.
+    // bindings. This only applies if the linked binding is not itself scoped.
     if (binding instanceof LinkedBindingImpl) {
       Key<?> linkedBinding = ((LinkedBindingImpl<?>) binding).getLinkedKey();
-      return isEagerSingleton(injector, injector.getBinding(linkedBinding), stage);
+      return binding.getScoping().isNoScope()
+          && isEagerSingleton(injector, injector.getBinding(linkedBinding), stage);
     }
 
     return false;
@@ -253,70 +242,116 @@ public final class InternalInjectorCreator {
   /** {@link Injector} exposed to users in {@link Stage#TOOL}. */
   static class ToolStageInjector implements Injector {
     private final Injector delegateInjector;
-    
+
     ToolStageInjector(Injector delegateInjector) {
       this.delegateInjector = delegateInjector;
     }
+
+    @Override
     public void injectMembers(Object o) {
       throw new UnsupportedOperationException(
-        "Injector.injectMembers(Object) is not supported in Stage.TOOL");
+          "Injector.injectMembers(Object) is not supported in Stage.TOOL");
     }
+
+    @Override
     public Map<Key<?>, Binding<?>> getBindings() {
       return this.delegateInjector.getBindings();
     }
+
+    @Override
     public Map<Key<?>, Binding<?>> getAllBindings() {
       return this.delegateInjector.getAllBindings();
     }
+
+    @Override
     public <T> Binding<T> getBinding(Key<T> key) {
       return this.delegateInjector.getBinding(key);
     }
+
+    @Override
     public <T> Binding<T> getBinding(Class<T> type) {
       return this.delegateInjector.getBinding(type);
     }
+
+    @Override
     public <T> Binding<T> getExistingBinding(Key<T> key) {
       return this.delegateInjector.getExistingBinding(key);
     }
+
+    @Override
     public <T> List<Binding<T>> findBindingsByType(TypeLiteral<T> type) {
       return this.delegateInjector.findBindingsByType(type);
     }
+
+    @Override
     public Injector getParent() {
       return delegateInjector.getParent();
     }
+
+    @Override
     public Injector createChildInjector(Iterable<? extends Module> modules) {
       return delegateInjector.createChildInjector(modules);
     }
+
+    @Override
     public Injector createChildInjector(Module... modules) {
       return delegateInjector.createChildInjector(modules);
     }
+
+    @Override
     public Map<Class<? extends Annotation>, Scope> getScopeBindings() {
       return delegateInjector.getScopeBindings();
     }
+
+    @Override
     public Set<TypeConverterBinding> getTypeConverterBindings() {
       return delegateInjector.getTypeConverterBindings();
     }
+
+    @Override
+    public List<Element> getElements() {
+      return delegateInjector.getElements();
+    }
+
+    @Override
+    public Map<TypeLiteral<?>, List<InjectionPoint>> getAllMembersInjectorInjectionPoints() {
+      return delegateInjector.getAllMembersInjectorInjectionPoints();
+    }
+
+    @Override
     public <T> Provider<T> getProvider(Key<T> key) {
       throw new UnsupportedOperationException(
-        "Injector.getProvider(Key<T>) is not supported in Stage.TOOL");
+          "Injector.getProvider(Key<T>) is not supported in Stage.TOOL");
     }
+
+    @Override
     public <T> Provider<T> getProvider(Class<T> type) {
       throw new UnsupportedOperationException(
-        "Injector.getProvider(Class<T>) is not supported in Stage.TOOL");
+          "Injector.getProvider(Class<T>) is not supported in Stage.TOOL");
     }
+
+    @Override
     public <T> MembersInjector<T> getMembersInjector(TypeLiteral<T> typeLiteral) {
       throw new UnsupportedOperationException(
-        "Injector.getMembersInjector(TypeLiteral<T>) is not supported in Stage.TOOL");
+          "Injector.getMembersInjector(TypeLiteral<T>) is not supported in Stage.TOOL");
     }
+
+    @Override
     public <T> MembersInjector<T> getMembersInjector(Class<T> type) {
       throw new UnsupportedOperationException(
-        "Injector.getMembersInjector(Class<T>) is not supported in Stage.TOOL");
+          "Injector.getMembersInjector(Class<T>) is not supported in Stage.TOOL");
     }
+
+    @Override
     public <T> T getInstance(Key<T> key) {
       throw new UnsupportedOperationException(
-        "Injector.getInstance(Key<T>) is not supported in Stage.TOOL");
+          "Injector.getInstance(Key<T>) is not supported in Stage.TOOL");
     }
+
+    @Override
     public <T> T getInstance(Class<T> type) {
       throw new UnsupportedOperationException(
-        "Injector.getInstance(Class<T>) is not supported in Stage.TOOL");
+          "Injector.getInstance(Class<T>) is not supported in Stage.TOOL");
     }
   }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,16 +20,16 @@ import static page.foliage.guava.common.base.Preconditions.checkNotNull;
 
 import java.lang.annotation.Annotation;
 
-import page.foliage.inject.spi.Element;
-import page.foliage.inject.spi.ElementVisitor;
-
+import page.foliage.guava.common.base.MoreObjects;
 import page.foliage.inject.Binder;
 import page.foliage.inject.Scope;
+import page.foliage.inject.internal.Errors;
 
 /**
  * Registration of a scope annotation with the scope that implements it. Instances are created
  * explicitly in a module using {@link page.foliage.inject.Binder#bindScope(Class, Scope) bindScope()}
  * statements:
+ *
  * <pre>
  *     Scope recordScope = new RecordScope();
  *     bindScope(RecordScoped.class, new RecordScope());</pre>
@@ -48,6 +48,7 @@ public final class ScopeBinding implements Element {
     this.scope = checkNotNull(scope, "scope");
   }
 
+  @Override
   public Object getSource() {
     return source;
   }
@@ -60,11 +61,22 @@ public final class ScopeBinding implements Element {
     return scope;
   }
 
+  @Override
   public <T> T acceptVisitor(ElementVisitor<T> visitor) {
     return visitor.visit(this);
   }
 
+  @Override
   public void applyTo(Binder binder) {
     binder.withSource(getSource()).bindScope(annotationType, scope);
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(ScopeBinding.class)
+        .add("annotationType", annotationType)
+        .add("scope", scope)
+        .add("source", Errors.convert(source))
+        .toString();
   }
 }

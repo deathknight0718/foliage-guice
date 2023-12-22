@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2006 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,7 +21,7 @@ import static page.foliage.guava.common.base.Preconditions.checkArgument;
 import java.util.Collection;
 
 import page.foliage.guava.common.collect.ImmutableSet;
-import page.foliage.inject.internal.Errors;
+import page.foliage.inject.internal.Messages;
 import page.foliage.inject.spi.Message;
 
 /**
@@ -38,7 +38,7 @@ public class CreationException extends RuntimeException {
   public CreationException(Collection<Message> messages) {
     this.messages = ImmutableSet.copyOf(messages);
     checkArgument(!this.messages.isEmpty());
-    initCause(Errors.getOnlyCause(this.messages));
+    initCause(Messages.getOnlyCause(this.messages));
   }
 
   /** Returns messages for the errors that caused this exception. */
@@ -46,8 +46,9 @@ public class CreationException extends RuntimeException {
     return messages;
   }
 
-  @Override public String getMessage() {
-    return Errors.format("Unable to create injector, see the following errors", messages);
+  @Override
+  public String getMessage() {
+    return Messages.formatMessages("Unable to create injector, see the following errors", messages);
   }
 
   private static final long serialVersionUID = 0;

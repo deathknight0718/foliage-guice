@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2008 Google Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,6 @@
  */
 
 package page.foliage.inject.spi;
-
-import page.foliage.inject.spi.ElementVisitor;
-import page.foliage.inject.spi.Elements;
 
 import page.foliage.inject.Binder;
 
@@ -63,5 +60,4 @@ public interface Element {
    *     element.
    */
   void applyTo(Binder binder);
-
 }
